@@ -26,8 +26,10 @@ export default {
 
   methods: {
     flipCard: function() {
-      console.log('flipped')
-      this.flipped = true;
+      if (!this.flipped) {
+        console.log('flipped')
+        this.flipped = true;
+      }
     }
   }
 }

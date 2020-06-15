@@ -34,11 +34,12 @@ export default {
       let colorIdx = Math.floor(Math.random()*this.colors.length);
       this.cards.push( {word: wordSet.words[wordIdx], color: this.colors[colorIdx]} )
     }
+    console.group('cards')
     let cards = this.cards;
     for (let i = 0; i < cards.length; i+=5) {
       console.log(`%c ${cards[i].word[0]} %c ${cards[i+1].word[0]} %c ${cards[i+2].word[0]} %c ${cards[i+3].word[0]} %c ${cards[i+4].word[0]} `, `color: #000; background-color: ${cards[i].color}`, `color: #000; background-color: ${cards[i+1].color}`, `color: #000; background-color: ${cards[i+2].color}`, `color: #000; background-color: ${cards[i+3].color}`, `color: #000; background-color: ${cards[i+4].color}`);
     }
-
+    console.groupEnd();
 
   },
 
