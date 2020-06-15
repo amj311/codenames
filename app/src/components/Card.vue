@@ -1,7 +1,15 @@
 <template>
-  <div v-on:click="this.flipCard" class="wrapper" :class="{flipped: flipped}">
-    <div>{{ word }}</div>
+  <div class="wrapper">
+    <div class="card" v-on:click="this.flipCard" :class="{flipped: flipped}">
+      <div class="card-face front" >
+        <div>{{ word }}</div>
+      </div>
+      <div class="card-face back">
+        <!-- <div>{{ word }}</div> -->
+      </div>
+    </div>
   </div>
+
 </template>
 
 <script>
@@ -27,21 +35,40 @@ export default {
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
 .wrapper {
+  perspective: 1000px;
+  height: 5em;
+}
+
+.card {
+  position: relative;
+  width: 100%;
+  height: 100%;  
+}
+.flipped {
+  transform: rotateX(180deg);
+  transition: 500ms;
+  transform-style: preserve-3d;
+}
+
+.card-face {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
   border-radius: 10px;
   border: .25em solid;
   padding: 1em;
-  height: 5em;
   display: flex;
   align-items: center;
   justify-content: center;
   user-select: none;
   cursor: pointer;
-  perspective: 1000px;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
-.wrapper.flipped {
-  transform: rotateX(180deg);
-  transition: 500ms;
-  transform-style: preserve-3d;
+.back {
+  transform: rotateX(180deg)
 }
+
 </style>
