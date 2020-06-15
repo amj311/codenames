@@ -29,8 +29,14 @@ export default {
   }},
 
   created() {
+    let usedWordIdxs = [];
     for (let i = 0; i < 25; i ++) {
-      let wordIdx = Math.floor(Math.random()*wordSet.words.length);
+      let wordIdx;
+      do {
+        wordIdx = Math.floor(Math.random()*wordSet.words.length);
+      } while(usedWordIdxs.lastIndexOf(wordIdx) != -1);
+      usedWordIdxs.push(wordIdx);
+
       let colorIdx = Math.floor(Math.random()*this.colors.length);
       this.cards.push( {word: wordSet.words[wordIdx], color: this.colors[colorIdx]} )
     }

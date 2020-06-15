@@ -5,7 +5,7 @@
         <div>{{ word }}</div>
       </div>
       <div class="card-face back" :style="{backgroundColor: color}">
-        <!-- <div>{{ color }}</div> -->
+        <!-- <div>{{ word }}</div> -->
       </div>
     </div>
   </div>
