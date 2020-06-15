@@ -4,8 +4,8 @@
       <div class="card-face front" >
         <div>{{ word }}</div>
       </div>
-      <div class="card-face back">
-        <!-- <div>{{ word }}</div> -->
+      <div class="card-face back" :style="{backgroundColor: color}">
+        <!-- <div>{{ color }}</div> -->
       </div>
     </div>
   </div>
@@ -16,7 +16,8 @@
 export default {
   name: 'Card',
   props: {
-    word: String
+    word: String,
+    color: String
   },
 
   data() { return {

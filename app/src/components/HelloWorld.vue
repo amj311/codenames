@@ -2,8 +2,8 @@
   <div class="hello">
     <h1>{{ msg }}</h1>
     <div class="cards-table">
-      <div v-for="word in words" :key="word" class="card-cell">
-        <Card :word="word" />
+      <div v-for="card in cards" :key="card.word" class="card-cell">
+        <Card :word="card.word" :color="card.color" />
       </div>
     </div>
     
@@ -24,15 +24,22 @@ export default {
   },
 
   data() { return {
-    words: [],
+    cards: [],
+    colors: ["yellow", "red", "#0bf"]
   }},
 
   created() {
-    console.log(wordSet.words.length);
     for (let i = 0; i < 25; i ++) {
-      let idx = Math.floor(Math.random()*wordSet.words.length);
-      this.words.push(wordSet.words[idx])
+      let wordIdx = Math.floor(Math.random()*wordSet.words.length);
+      let colorIdx = Math.floor(Math.random()*this.colors.length);
+      this.cards.push( {word: wordSet.words[wordIdx], color: this.colors[colorIdx]} )
     }
+    let cards = this.cards;
+    for (let i = 0; i < cards.length; i+=5) {
+      console.log(`%c ${cards[i].word[0]} %c ${cards[i+1].word[0]} %c ${cards[i+2].word[0]} %c ${cards[i+3].word[0]} %c ${cards[i+4].word[0]} `, `color: #000; background-color: ${cards[i].color}`, `color: #000; background-color: ${cards[i+1].color}`, `color: #000; background-color: ${cards[i+2].color}`, `color: #000; background-color: ${cards[i+3].color}`, `color: #000; background-color: ${cards[i+4].color}`);
+    }
+
+
   },
 
 }
