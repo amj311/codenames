@@ -3,6 +3,11 @@
     <h1>{{ msg }}</h1>
     <button @click="setNewGame" class="ui-raised ui-pressable ui-shiny">New Game</button>
     <br><br><hr/><br/>
+    <div id="scoreboard" v-if="this.teamOfTurn">
+      <div id="activeTeam" :style="{color: this.teamOfTurn.color}">Go {{this.teamOfTurn.name}}!</div>
+      <div id="activeHint" v-if="this.turnHint">"{{this.turnHint}}"</div>
+      <div id="guessCounter">{{Math.max(0, this.turnGuesses-this.turnGuessesUsed)}}<span class="extraHint"> + 1</span></div>
+    </div>
     <div v-if="cards.length > 0" class="cards-table" :style="{'pointer-events': canPlay ? 'all' : 'none'}">
       <div v-for="card in cards" :key="card.word" class="card-cell">
         <Card :freeRotate="gameOver" :card="card" @flipped="handleCardFlip(card)" />
@@ -13,10 +18,10 @@
       <div id="modalCloser" v-if="!(modal_cbNO || modal_cbOK)" @click="modal_on('EX')">&times;</div>
       <div id="modalContainer" class="ui-raised">
         <div id="modalContent">
-          <img id="modalImg" v-if="modal_img" :src="modal_img.path" :style="{width: modal_img.w, height: modal_img.h}" />
+          <img id="modalImg" class="ui-raised" v-if="modal_img" :src="modal_img.path" :style="{width: modal_img.w, height: modal_img.h}" />
           <div id="modalMsg">{{modal_msg}}</div>
           <form id="turnHintForm" v-if="modal_form == 'turnHint'" @submit.prevent="modal_on('OK')">
-            <div class="form-row"><input v-model="turnHint" type="text" /><input type="number" min="0" v-model="turnGuesses" /></div>
+            <div class="form-row"><input v-model="turnHint" type="text" /><input type="number" min="1" v-model="turnGuesses" /></div>
           </form>
           <div id="modalButtons">
             <button id="modalOK" v-if="modal_cbOK" @click="modal_on('OK')" class="ui-raised ui-shiny ui-pressable">OK</button>
@@ -150,9 +155,10 @@ export default {
     handleCardFlip(card) {
       console.log("%cFlipped: "+card.word, `color: #777; background-color: ${card.team.color}`)
       card.team.points++;
-      this.pausePlay();
 
       if (card.team.points == card.team.qty && card.team != this.cardDist.bystander) {
+        this.pausePlay();
+
         this.winner = card.team;
         console.log(this.winner.name + " wins!")
         setTimeout( () => {
@@ -168,13 +174,17 @@ export default {
 
       else {
         this.turnGuessesUsed++;
-        setTimeout(this.advanceTurn, 700);
+
+        if (this.turnGuessesUsed > this.turnGuesses) {
+          this.pausePlay();
+          setTimeout(this.advanceTurn, 700);
+        }
       }
     },
 
     advanceTurn() {
       this.turnHint = "";
-      this.turnGuesses = 0;
+      this.turnGuesses = 1;
       this.turnGuessesUsed = 0;
 
       if (this.teamOfTurn == this.cardDist.teamOne) this.teamOfTurn = this.cardDist.teamTwo;
@@ -299,5 +309,49 @@ div#modalMsg {
 }
 img#modalImg {
     max-width: 100%;
+}
+
+
+
+
+div#scoreboard {
+    display: flex;
+    justify-content: space-between;
+    font-weight: bold;
+    font-size: 1.75rem;
+    padding: .25em;
+}
+
+span.extraHint {
+    color: #888;
+}
+
+.form-row {
+    margin: 1rem 0;
+    display: flex;
+}
+
+form input {
+    font-size: 1.25em;
+    padding: .25em;
+}
+
+input[type="number"] {
+    text-align: right;
+    width: 3em;
+}
+
+
+
+div#scoreboard {
+    display: flex;
+    justify-content: space-between;
+    font-weight: bold;
+    font-size: 1.75rem;
+    padding: .25em;
+}
+
+span.extraHint {
+    color: #888;
 }
 </style>
