@@ -4,7 +4,7 @@
       <div class="card-face front ui-raised" :class="{'ui-pressable': !card.flipped && !freeRotate}" >
         <div>{{ card.word }}</div>
       </div>
-      <div class="card-face back ui-raised ui-shiny" :class="{'ui-shift-shiny': card.flipped}" :style="{backgroundColor: card.color}">
+      <div class="card-face back ui-raised" :style="{backgroundColor: card.color}" style="background-image: linear-gradient(35deg, transparent 30%, #fff4 35%, transparent 50%, transparent 60%, #fff4 65%, transparent 80%)">
         <!-- <div>{{ card.word }}</div> -->
       </div>
     </div>
@@ -71,10 +71,23 @@ export default {
 }
 
 .back {
-  transform: rotateX(180deg)
+  transform: rotateX(180deg);
+  position: relative;
+  outline: none;
+  user-select: none;  background-position: 0% 50%;
+  background-size: 300% 300%;
 }
-.back.ui-shiny.ui-shift-shiny::after {
-  transition-delay: 250ms;
-}
+/* .back::after {
+  content: '';
+  display: block;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  left: 0;
+  top: 0;
+  background: linear-gradient(35deg, transparent 30%, #fff4 35%, transparent 50%, transparent 60%, #fff4 65%, transparent 80%);
+  background-position: 0% 50%;
+  background-size: 300% 300%;
+} */
 
 </style>
