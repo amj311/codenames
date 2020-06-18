@@ -1,7 +1,7 @@
 <template>
   <div class="hello">
     <h1>{{ msg }}</h1>
-    <button @click="setNewGame" class="ui-raised ui-pressable ui-shiny">New Game</button>
+    <button @click="setNewGame" class="ui-raised ui-pressable ui-shiny">NEW GAME</button>
     <br><br><hr/><br/>
     <div id="scoreboard" v-if="this.teamOfTurn">
       <div id="activeTeam" :style="{color: this.teamOfTurn.color}">Go {{this.teamOfTurn.name}}!</div>
@@ -14,6 +14,10 @@
       </div>
     </div>
 
+    <br>
+    <button @click="advanceTurn" v-if="canPlay && teamOfTurn" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': cardDist.bystander.color}">END TURN</button>
+
+
     <div id="modalWrapper" v-show="modal_msg">
       <div id="modalCloser" v-if="!(modal_cbNO || modal_cbOK)" @click="modal_on('EX')">&times;</div>
       <div id="modalContainer" class="ui-raised">
@@ -21,7 +25,7 @@
           <img id="modalImg" class="ui-raised" v-if="modal_img" :src="modal_img.path" :style="{width: modal_img.w, height: modal_img.h}" />
           <div id="modalMsg">{{modal_msg}}</div>
           <form id="turnHintForm" v-if="modal_form == 'turnHint'" @submit.prevent="modal_on('OK')">
-            <div class="form-row"><input v-model="turnHint" type="text" /><input type="number" min="1" v-model="turnGuesses" /></div>
+            <div class="form-row"><input v-model="turnHint" type="text" placeholder="Write a hint for your team!" /><input type="number" min="1" v-model="turnGuesses" /></div>
           </form>
           <div id="modalButtons">
             <button id="modalOK" v-if="modal_cbOK" @click="modal_on('OK')" class="ui-raised ui-shiny ui-pressable">OK</button>
@@ -155,6 +159,7 @@ export default {
     handleCardFlip(card) {
       console.log("%cFlipped: "+card.word, `color: #777; background-color: ${card.team.color}`)
       card.team.points++;
+      this.turnGuessesUsed++;
 
       if (card.team.points == card.team.qty && card.team != this.cardDist.bystander) {
         this.pausePlay();
@@ -173,11 +178,9 @@ export default {
       }
 
       else {
-        this.turnGuessesUsed++;
-
-        if (this.turnGuessesUsed > this.turnGuesses) {
+        if (card.team != this.teamOfTurn || this.turnGuessesUsed > this.turnGuesses) {
           this.pausePlay();
-          setTimeout(this.advanceTurn, 700);
+          setTimeout(this.advanceTurn, 1000);
         }
       }
     },
@@ -352,6 +355,6 @@ div#scoreboard {
 }
 
 span.extraHint {
-    color: #888;
+    color: #aaa;
 }
 </style>
