@@ -40,6 +40,10 @@ body {
 .ui-raised {
   box-shadow: 1px 1px 3px #0005;
 }
+img.ui-raised {
+  filter: drop-shadow(3px 3px 5px 0px #0004);
+  box-shadow: none;
+}
 .ui-raised.ui-pressable:hover {
     box-shadow: 3px 3px 5px 0px #0004;
     transform: translateY(-1px);

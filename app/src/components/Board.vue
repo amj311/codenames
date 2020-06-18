@@ -3,7 +3,7 @@
     <h1>{{ msg }}</h1>
     <button @click="setNewGame" class="ui-raised ui-pressable ui-shiny">New Game</button>
     <br><br><hr/><br/>
-    <div v-if="cards.length > 0" class="cards-table" :style="{'pointer-events': canPlay}">
+    <div v-if="cards.length > 0" class="cards-table" :style="{'pointer-events': canPlay ? 'all' : 'none'}">
       <div v-for="card in cards" :key="card.word" class="card-cell">
         <Card :freeRotate="gameOver" :card="card" @flipped="handleCardFlip(card)" />
       </div>
@@ -13,8 +13,11 @@
       <div id="modalCloser" v-if="!(modal_cbNO || modal_cbOK)" @click="modal_on('EX')">&times;</div>
       <div id="modalContainer" class="ui-raised">
         <div id="modalContent">
-          <div id="modalMsg">{{modal_msg}}</div>
           <img id="modalImg" v-if="modal_img" :src="modal_img.path" :style="{width: modal_img.w, height: modal_img.h}" />
+          <div id="modalMsg">{{modal_msg}}</div>
+          <form id="turnHintForm" v-if="modal_form == 'turnHint'" @submit.prevent="modal_on('OK')">
+            <div class="form-row"><input v-model="turnHint" type="text" /><input type="number" min="0" v-model="turnGuesses" /></div>
+          </form>
           <div id="modalButtons">
             <button id="modalOK" v-if="modal_cbOK" @click="modal_on('OK')" class="ui-raised ui-shiny ui-pressable">OK</button>
             <button id="modalNo" v-if="modal_cbNO" @click="modal_on('NO')" class="ui-shiny ui-pressable">OK</button>
@@ -47,6 +50,9 @@ export default {
       assassin: { qty: 1, color: "black", name: "Assassin", deck: [], points: 0, img: require("@/assets/ninjas/black.png") },
     },
     teamOfTurn: null,
+    turnHint: "",
+    turnGuesses: 0,
+    turnGuessesUsed: 0,
     canPlay: false,
     gameOver: false,
     winner: null,
@@ -137,10 +143,14 @@ export default {
       console.groupEnd();
     },
 
-    handleCardFlip(card) {
+    pausePlay(){
       this.canPlay = false;
+    },
+
+    handleCardFlip(card) {
       console.log("%cFlipped: "+card.word, `color: #777; background-color: ${card.team.color}`)
       card.team.points++;
+      this.pausePlay();
 
       if (card.team.points == card.team.qty && card.team != this.cardDist.bystander) {
         this.winner = card.team;
@@ -151,29 +161,39 @@ export default {
             onEX: () => this.gameOver = true,
             img: {path: card.team.img, w:'15em', h:'15em'}
           });
+          this.canPlay = true;
         }
         , 500)
       }
 
       else {
-        setTimeout(this.advanceTurn, 500);
+        this.turnGuessesUsed++;
+        setTimeout(this.advanceTurn, 700);
       }
-      
-      this.canPlay = true;
     },
 
     advanceTurn() {
+      this.turnHint = "";
+      this.turnGuesses = 0;
+      this.turnGuessesUsed = 0;
+
       if (this.teamOfTurn == this.cardDist.teamOne) this.teamOfTurn = this.cardDist.teamTwo;
       else this.teamOfTurn = this.cardDist.teamOne;
       
       this.modal_open({
         msg: this.teamOfTurn.name + "'s turn!",
-        img: {path: this.teamOfTurn.img, w:'10em', h:'10em'}
+        img: {path: this.teamOfTurn.img, w:'5em', h:'5em'},
+        form: 'turnHint',
+        onOK() { 
+          console.log(`${this.teamOfTurn.name}'s turn. Hint: '${this.turnHint}' for ${this.turnGuesses}`)
+          this.canPlay = true;
+        },
       })
     },
 
 
     modal_open(props) {
+      this.modal_form = props.form;
       this.modal_cbEX = props.onEX;
       this.modal_cbOK = props.onOK;
       this.modal_cbNO = props.onNO;
@@ -188,7 +208,7 @@ export default {
     },
     modal_close() {
       this.modal_msg = "";
-      this.modal_cbOK = this.modal_cbNO = this.modal_cbEX = this.modal_img = null;
+      this.modal_cbOK = this.modal_cbNO = this.modal_cbEX = this.modal_img = this.modal_form = null;
     }
 
   }
