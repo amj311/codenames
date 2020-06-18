@@ -1,6 +1,6 @@
 <template>
-  <div class="wrapper" :class="{flipped: card.flipped, freeRotate: freeRotate}">
-    <div class="card" v-on:click="this.flipCard">
+  <div class="wrapper" v-show="show">
+    <div class="modal" v-on:click="this.ok">
       <div class="card-face front ui-raised" :class="{'ui-pressable': !card.flipped && !freeRotate}" >
         <div>{{ card.word }}</div>
       </div>
@@ -15,10 +15,10 @@
 <script>
 export default {
   name: 'Card',
-  props: ["card", "freeRotate"],
+  props: [],
 
   data() { return {
-    flipped: false
+    show: true
   }},
 
   methods: {
