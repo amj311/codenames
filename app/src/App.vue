@@ -61,13 +61,13 @@ body {
   height: 100%;
   left: 0;
   top: 0;
-  background: linear-gradient(35deg, transparent 30%, #fff4 35%, transparent 50%, transparent 60%, #fff4 65%, transparent 80%);
+  background: linear-gradient(35deg, transparent 30%, rgba(255, 255, 255, 0.267) 35%, transparent 45%, transparent 52%, rgba(255, 255, 255, 0.267) 57%, transparent 73%);
   background-position: 0% 50%;
   background-size: 300% 300%;
   transition: background-position 300ms;
 }
 
 .ui-shiny.ui-pressable:hover::after, .ui-shiny.ui-shift-shiny::after {
-  background-position: 70% 50%;
+  background-position: 60% 50%;
 }
 </style>
