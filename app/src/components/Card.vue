@@ -1,11 +1,11 @@
 <template>
   <div class="wrapper" :class="{flipped: card.flipped, freeRotate: freeRotate}">
-    <div class="card" v-on:click="this.flipCard">
+    <div class="card">
       <div class="card-face front ui-raised" :class="{'ui-pressable': !card.flipped && !freeRotate}" >
         <div>{{ card.word }}</div>
       </div>
       <div class="card-face back ui-raised" :style="{backgroundColor: card.color}" style="background-image: linear-gradient(35deg, transparent 30%, rgba(255, 255, 255, 0.267) 35%, transparent 45%, transparent 52%, rgba(255, 255, 255, 0.267) 57%, transparent 73%)">
-        <!-- <div>{{ card.word }}</div> -->
+        <img v-if="card.showTeamImg" :src="card.team.img" style="width: 3em;" class="ui-raised" />
       </div>
     </div>
   </div>
@@ -22,12 +22,6 @@ export default {
   }},
 
   methods: {
-    flipCard: function() {
-      if (!this.card.flipped && !this.freeRotate) {
-        this.card.flipped = true;
-        this.$emit('flipped')
-      }
-    }
   }
 }
 </script>
@@ -45,7 +39,7 @@ export default {
   height: 100%;
   background: #fff;
   border-radius: 10px;
-  transition: 500ms;
+  transition: 600ms;
   transform-style: preserve-3d;
 }
 .flipped .card, .freeRotate .card {

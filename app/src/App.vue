@@ -20,6 +20,19 @@ export default {
 body {
   background: #f5f5f5;
 }
+body::before {
+  content: '';
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url(/img/full_bg.4c077efe.jpg);
+  background-position: center;
+  background-size: cover;
+  opacity: 0.2;
+}
 
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
@@ -44,7 +57,7 @@ img.ui-raised {
   filter: drop-shadow(1px 1px 3px #0004);
   box-shadow: none;
 }
-.ui-raised.ui-pressable:hover {
+.ui-raised.ui-pressable:hover, .ui-raised.ui-pressable:focus {
     box-shadow: 3px 3px 5px 0px #0004;
     transform: translateY(-1px);
 }
@@ -71,7 +84,7 @@ img.ui-raised {
   transition: background-position 300ms;
 }
 
-.ui-shiny.ui-pressable:hover::after, .ui-shiny.ui-shift-shiny::after {
+.ui-shiny.ui-pressable:hover::after, .ui-shiny.ui-pressable:focus::after, .ui-shiny.ui-shift-shiny::after {
   background-position: 60% 50%;
 }
 </style>
