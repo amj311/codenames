@@ -20,7 +20,7 @@
       </div>
       <div>
         <button @click="giveHint" v-if="gameState.roundStatus == 'givingHint'" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': gameState.teamOfTurn.color}">GIVE HINT</button>
-        <button @click="advanceTurn" v-if="gameState.roundStatus == 'guessing'" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': cardDist.bystander.color}">END TURN</button>
+        <button @click="advanceTurn" v-if="gameState.roundStatus == 'guessing'" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': gameState.teams.bystander.color}">END TURN</button>
       </div>
       <div style="display: flex; justify-content: flex-end;">
         <button @click="promptEndGame" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': '#888'}">END GAME</button>
@@ -52,12 +52,7 @@ export default {
     gameState: this.$store.state.game,
 
     cards: [],
-    cardDist: {
-      teamOne: { qty: 9, color: "#0bf", name: "Blue", deck: [], points: 0, img: null },
-      teamTwo: { qty: 9, color: "#f22", name: "Red", deck: [], points: 0, img: null },
-      bystander: { qty: 6, color: "#f4d96a", name: "Bystander", deck: [], points: 0, img: null },
-      assassin: { qty: 1, color: "#2c3e50", name: "Assassin", deck: [], points: 0, img: null },
-    },
+    
 
     ninjasImgs: this.$store.state.ninjasImgs,
 
@@ -66,10 +61,10 @@ export default {
 
   created() {
     this.canPlay = this.deckIsGood();
-    this.cardDist.assassin.img = this.ninjasImgs.black;
-    this.cardDist.teamOne.img = this.ninjasImgs.blue;
-    this.cardDist.teamTwo.img = this.ninjasImgs.red;
-    this.cardDist.bystander.img = this.ninjasImgs.yellow;
+    this.gameState.teams.assassin.img = this.ninjasImgs.black;
+    this.gameState.teams.teamOne.img = this.ninjasImgs.blue;
+    this.gameState.teams.teamTwo.img = this.ninjasImgs.red;
+    this.gameState.teams.bystander.img = this.ninjasImgs.yellow;
 
     this.setNewGame();
   },
@@ -81,7 +76,7 @@ export default {
   methods: {
     deckIsGood() {
       let totCards = 0;
-      for (let [, team] of Object.entries(this.cardDist)) {
+      for (let [, team] of Object.entries(this.gameState.teams)) {
         totCards += team.qty;
       }
       return totCards == this.numCards;
@@ -124,7 +119,7 @@ export default {
 
     clearBoard() {
       this.cards = [];
-      for (let team of Object.values(this.cardDist)) {
+      for (let team of Object.values(this.gameState.teams)) {
         team.deck = [];
         team.points = 0;
       }
@@ -148,7 +143,7 @@ export default {
         } while (usedWordIdxs.lastIndexOf(wordIdx) != -1);
         usedWordIdxs.push(wordIdx);
 
-        let teams = Object.entries(this.cardDist);
+        let teams = Object.entries(this.gameState.teams);
         let team;
         let teamCap = 0;
         let teamIdx = 0;
@@ -190,10 +185,10 @@ export default {
         e.card.flipped = true;
 
         if (e.card.team == this.gameState.teamOfTurn) this.animateGoodFlip(e.event);
-        else if (e.card.team == this.cardDist.assassin) this.animateAssassin(e.event);
+        else if (e.card.team == this.gameState.teams.assassin) this.animateAssassin(e.event);
         else this.animateBadFlip(event)
 
-        if (e.card.team.points == e.card.team.qty && e.card.team != this.cardDist.bystander) {
+        if (e.card.team.points == e.card.team.qty && e.card.team != this.gameState.teams.bystander) {
           this.pausePlay();
           
           this.$store.commit('updateGameState', {
@@ -227,8 +222,8 @@ export default {
     advanceTurn() {
       this.$store.commit('resetRound')
 
-      if (this.gameState.teamOfTurn == this.cardDist.teamOne) this.$store.commit('updateGameState', {teamOfTurn: this.cardDist.teamTwo});
-      else this.$store.commit('updateGameState', {teamOfTurn: this.cardDist.teamOne});
+      if (this.gameState.teamOfTurn == this.gameState.teams.teamOne) this.$store.commit('updateGameState', {teamOfTurn: this.gameState.teams.teamTwo});
+      else this.$store.commit('updateGameState', {teamOfTurn: this.gameState.teams.teamOne});
       
       this.$store.commit('updateGameState', {roundStatus: 'givingHint'});
       

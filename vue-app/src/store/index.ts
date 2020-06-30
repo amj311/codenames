@@ -9,6 +9,13 @@ export default new Vuex.Store({
     game: {
       layoutSqrFactor: 5,
       
+      teams: {
+        teamOne: { qty: 9, color: "#0bf", name: "Blue", deck: [], points: 0, img: null },
+        teamTwo: { qty: 9, color: "#f22", name: "Red", deck: [], points: 0, img: null },
+        bystander: { qty: 6, color: "#f4d96a", name: "Bystander", deck: [], points: 0, img: null },
+        assassin: { qty: 1, color: "#2c3e50", name: "Assassin", deck: [], points: 0, img: null },
+      },
+
       teamOfTurn: null,
       canPlay: false,
       roundStatus: '',
