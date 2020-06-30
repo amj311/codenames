@@ -44,6 +44,7 @@ body::before {
   background-image: url(./assets/full_bg.jpg);
   background-position: center;
   background-size: cover;
+  background-attachment: fixed;
   opacity: 0.2;
 }
 
@@ -52,7 +53,7 @@ body::before {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
-  color: #2c3e50;
+  color: #111;
 }
 
 
