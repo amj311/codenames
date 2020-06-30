@@ -1,14 +1,14 @@
 <template>
   <div class="hello" style="max-width: 60rem; margin: 0 auto;">
-    <div id="scoreboard" v-if="this.teamOfTurn && !gameOver">
-      <div id="activeTeam" :style="{color: this.teamOfTurn.color}">Go {{this.teamOfTurn.name}}!</div>
-      <div id="activeHint">{{this.roundStatus =='guessing' ? `"${state.game.turnHint}"` : "Waiting for hint..."}}</div>
-      <div id="guessCounter" v-if="roundStatus == 'guessing'">Attempts: {{Math.max(0, state.game.turnGuesses-state.game.usedGuesses)}}<span class="extraHint"> + 1</span></div>
+    <div id="scoreboard" v-if="gameState.teamOfTurn && !gameState.gameOver">
+      <div id="activeTeam" :style="{color: gameState.teamOfTurn.color}">Go {{gameState.teamOfTurn.name}}!</div>
+      <div id="activeHint">{{gameState.roundStatus =='guessing' ? `"${gameState.turnHint}"` : "Waiting for hint..."}}</div>
+      <div id="guessCounter" v-if="gameState.roundStatus == 'guessing'">Attempts: {{Math.max(0, gameState.turnGuesses-gameState.usedGuesses)}}<span class="extraHint"> + 1</span></div>
     </div>
-    <div id="winnerMsg" v-if="this.winner && gameOver"><div :style="`text-align: center; margin: 0 auto; background-color: ${this.winner.color}; color: #fff; padding: 0 .4em; border-radius: 5px;`">{{this.winner.name}} Wins!</div></div>
-    <div v-if="cards.length > 0" class="cards-table" :style="{'pointer-events': (roundStatus == 'guessing' || gameOver) ? 'all' : 'none'}">
+    <div id="winnerMsg" v-if="gameState.winner && gameState.gameOver"><div :style="`text-align: center; margin: 0 auto; background-color: ${gameState.winner.color}; color: #fff; padding: 0 .4em; border-radius: 5px;`">{{gameState.winner.name}} Wins!</div></div>
+    <div v-if="cards.length > 0" class="cards-table" :style="{'pointer-events': (gameState.roundStatus == 'guessing' || gameState.gameOver) ? 'all' : 'none'}">
       <div v-for="card in cards" :key="card.word" class="card-cell">
-        <Card :freeRotate="gameOver" :card="card" @tryFlip="handleCardFlip" />
+        <Card :freeRotate="gameState.gameOver" :card="card" @tryFlip="handleCardFlip" />
       </div>
     </div>
 
@@ -16,11 +16,11 @@
 
     <div id="bottomBar">
       <div style="display: flex; justify-content: flex-start;">
-        <button @click="setNewGame" v-if="gameOver" class="ui-raised ui-pressable ui-shiny">PLAY AGAIN</button>
+        <button @click="setNewGame" v-if="gameState.gameOver" class="ui-raised ui-pressable ui-shiny">PLAY AGAIN</button>
       </div>
       <div>
-        <button @click="giveHint" v-if="roundStatus == 'givingHint'" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': teamOfTurn.color}">GIVE HINT</button>
-        <button @click="advanceTurn" v-if="roundStatus == 'guessing'" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': cardDist.bystander.color}">END TURN</button>
+        <button @click="giveHint" v-if="gameState.roundStatus == 'givingHint'" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': gameState.teamOfTurn.color}">GIVE HINT</button>
+        <button @click="advanceTurn" v-if="gameState.roundStatus == 'guessing'" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': cardDist.bystander.color}">END TURN</button>
       </div>
       <div style="display: flex; justify-content: flex-end;">
         <button @click="promptEndGame" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': '#888'}">END GAME</button>
@@ -49,6 +49,8 @@ export default {
 
   data() { return {
     state: this.$store.state,
+    gameState: this.$store.state.game,
+
     cards: [],
     cardDist: {
       teamOne: { qty: 9, color: "#0bf", name: "Blue", deck: [], points: 0, img: null },
@@ -56,11 +58,6 @@ export default {
       bystander: { qty: 6, color: "#f4d96a", name: "Bystander", deck: [], points: 0, img: null },
       assassin: { qty: 1, color: "#2c3e50", name: "Assassin", deck: [], points: 0, img: null },
     },
-    teamOfTurn: null,
-    canPlay: false,
-    roundStatus: '',
-    gameOver: false,
-    winner: null,
 
     ninjasImgs: this.$store.state.ninjasImgs,
 
@@ -78,7 +75,7 @@ export default {
   },
 
   computed: {
-    numCards() { return this.state.game.layoutSqrFactor**2 }
+    numCards() { return this.gameState.layoutSqrFactor**2 }
   },
 
   methods: {
@@ -91,10 +88,12 @@ export default {
     },
 
     resetBoard() {
-      this.teamOfTurn = null;
-      this.winner = null;
-      this.gameOver = false;
-      this.canPlay = false;
+      this.$store.commit("updateGameState", {
+        teamOfTurn: null,
+        winner: null,
+        gameOver: false,
+        canPlay: false,
+      })
     },
 
     endGame() {
@@ -125,7 +124,7 @@ export default {
 
     clearBoard() {
       this.cards = [];
-      for (let [, team] of Object.entries(this.cardDist)) {
+      for (let team of Object.values(this.cardDist)) {
         team.deck = [];
         team.points = 0;
       }
@@ -178,40 +177,46 @@ export default {
     },
 
     pausePlay(){
-      this.roundStatus = "";
-      this.canPlay = false;
+      this.$store.commit('updateGameState', {
+        roundStatus: "",
+        canPlay: false,
+      })
     },
 
     handleCardFlip(e) {
-      if(this.roundStatus == "guessing" && !this.gameOver) {
+      if(this.gameState.roundStatus == "guessing" && !this.gameState.gameOver) {
         e.card.team.points++;
-        // this.turnGuessesUsed++;
+        this.$store.commit('useGuess');
         e.card.flipped = true;
 
-        if (e.card.team == this.teamOfTurn) this.animateGoodFlip(e.event);
+        if (e.card.team == this.gameState.teamOfTurn) this.animateGoodFlip(e.event);
         else if (e.card.team == this.cardDist.assassin) this.animateAssassin(e.event);
         else this.animateBadFlip(event)
 
         if (e.card.team.points == e.card.team.qty && e.card.team != this.cardDist.bystander) {
           this.pausePlay();
-          this.roundStatus = "";
-          this.winner = e.card.team;
+          
+          this.$store.commit('updateGameState', {
+            roundStatus: "",
+            winner: e.card.team,
+          });
+          
           e.card.showTeamImg = true;
           let context = this;
           setTimeout( () => {
+            this.$store.commit('updateGameState', {canPlay: true});
             this.$store.dispatch('openModal', {
-              msg: this.winner.name + " wins!",
+              msg: context.gameState.winner.name + " wins!",
               img: {path: e.card.team.img, w:'15em', h:'15em'},
-              onEX() { context.gameOver = true; },
+              onEX() { context.gameState.gameOver = true; },
               timeout: 3000,
             });
-            this.canPlay = true;
           }
-          , 500)
+          , 1000)
         }
 
         else {
-          if (e.card.team != this.teamOfTurn || this.state.game.usedGuesses > this.state.game.turnGuesses) {
+          if (e.card.team != this.gameState.teamOfTurn || this.gameState.usedGuesses > this.gameState.turnGuesses) {
             this.pausePlay();
             setTimeout(this.advanceTurn, 1000);
           }
@@ -222,14 +227,14 @@ export default {
     advanceTurn() {
       this.$store.commit('resetRound')
 
-      if (this.teamOfTurn == this.cardDist.teamOne) this.teamOfTurn = this.cardDist.teamTwo;
-      else this.teamOfTurn = this.cardDist.teamOne;
+      if (this.gameState.teamOfTurn == this.cardDist.teamOne) this.$store.commit('updateGameState', {teamOfTurn: this.cardDist.teamTwo});
+      else this.$store.commit('updateGameState', {teamOfTurn: this.cardDist.teamOne});
       
-      this.roundStatus = "givingHint";
+      this.$store.commit('updateGameState', {roundStatus: 'givingHint'});
       
       this.$store.dispatch('openModal', {
-        msg: this.teamOfTurn.name + "'s turn!",
-        img: {path: this.teamOfTurn.img, w:'5em', h:'5em'},
+        msg: this.gameState.teamOfTurn.name + "'s turn!",
+        img: {path: this.gameState.teamOfTurn.img, w:'5em', h:'5em'},
         timeout: 3000,
       })
     },
@@ -238,15 +243,17 @@ export default {
       let context = this;
       this.$store.dispatch('openModal', {
         msg: "Write a hint for your team!",
-        img: {path: this.teamOfTurn.img, w:'5em', h:'5em'},
+        img: {path: this.gameState.teamOfTurn.img, w:'5em', h:'5em'},
         form: 'turnHint',
-        onOK() { 
-          context.canPlay = true;
-          context.roundStatus = "guessing";
+        onOK() {
+          context.$store.commit('updateGameState', {
+            canPlay: true,
+            roundStatus: "guessing",
+          });
         },
         onEX: () => {return},
         onNO: () => {return},
-        isValid: () => { return context.$store.state.game.turnHint },
+        isValid: () => { return context.gameState.turnHint },
         alert: "You must provide a hint!",
       })
     },
