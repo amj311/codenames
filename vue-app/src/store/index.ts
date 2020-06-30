@@ -7,13 +7,9 @@ export default new Vuex.Store({
   state: {
     view: 'start',
     game: {
+      roundStatus: null,
       layoutSqrFactor: 5,
       
-      teamOfTurn: null,
-      canPlay: false,
-      roundStatus: '',
-      gameOver: false,
-      winner: null,
       turnHint: "",
       turnGuesses: 1,
       usedGuesses: 0,
@@ -46,13 +42,6 @@ export default new Vuex.Store({
     },
     endGame(state: any) {
       state.view = "start";
-    },
-    updateGameState(state, props) {
-      let stateKeys = Object.keys(state.game);
-      for (let key of Object.keys(props)) {
-        if (stateKeys.lastIndexOf(key) >= 0) state.game[key] = props[key];
-        else console.error("Game state has no property " + key)
-      }
     },
     resetRound(state) {
       state.game.turnHint = "";
