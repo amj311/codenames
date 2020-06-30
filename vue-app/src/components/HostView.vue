@@ -50,7 +50,7 @@ import Card from './Card.vue'
 import wordSet from '../assets/words/test_rel.json'
 
 export default {
-  name: 'Board',
+  name: 'HostView',
   props: ["msg"],
   components: {
     Card

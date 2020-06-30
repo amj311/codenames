@@ -1,19 +1,19 @@
 <template>
   <div id="app">
-    <Start />
+    <Start v-if="view == 'start'" Start />
+    <PlayView />
     <!-- <img alt="Vue logo" src="./assets/logo.png"> -->
-    <Board msg="Codenames"/>
+    <!-- <HostView msg="Codenames"/> -->
   </div>
 </template>
 
 <script>
-import Board from './components/Board.vue'
+import PlayView from './components/PlayView.vue'
 
 export default {
   name: 'App',
   components: {
-    Board,
-    // Start,
+    PlayView,
   }
 }
 </script>
@@ -21,6 +21,7 @@ export default {
 <style>
 body {
   background: #f5f5f5;
+  margin: 0;
 }
 body::before {
   content: '';
