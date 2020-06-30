@@ -1,20 +1,30 @@
 <template>
   <div id="app">
-    <Start v-if="view == 'start'" Start />
-    <PlayView />
+    <StartView v-if="state.view == 'start'" />
+    <PlayView v-else-if="state.view == 'play'" />
     <!-- <img alt="Vue logo" src="./assets/logo.png"> -->
     <!-- <HostView msg="Codenames"/> -->
+    <Modal />
+
+
   </div>
 </template>
 
 <script>
 import PlayView from './components/PlayView.vue'
+import StartView from './components/StartView.vue'
+import Modal from './components/Modal.vue'
 
 export default {
   name: 'App',
   components: {
     PlayView,
-  }
+    StartView,
+    Modal,
+  },
+  data() { return ({
+    state: this.$store.state,
+  })}
 }
 </script>
 
@@ -50,14 +60,24 @@ body::before {
   position: relative;
   top: 0;
   left: 0;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  min-height: 100vh;
   display: flex;
   align-content: center;
   align-items: center;
   justify-content: center;
 }
 
+
+
+button {
+  border: none;
+  padding: 1em 2em;
+  font-weight: bold;
+  color: white;
+  background-color: #0bf;
+  margin: .5em;
+}
 
 .ui-pressable {
   cursor: pointer;

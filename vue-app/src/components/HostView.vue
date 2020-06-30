@@ -1,11 +1,9 @@
 <template>
   <div class="hello" style="max-width: 60rem; margin: 0 auto;">
-    <button @click="setNewGame" class="ui-raised ui-pressable ui-shiny">NEW GAME</button>
-    <br><br><hr/><br/>
     <div id="scoreboard" v-if="this.teamOfTurn && !gameOver">
       <div id="activeTeam" :style="{color: this.teamOfTurn.color}">Go {{this.teamOfTurn.name}}!</div>
-      <div id="activeHint">{{this.roundStatus =='guessing' ? `"${this.turnHint}"` : "Waiting for hint..."}}</div>
-      <div id="guessCounter" v-if="roundStatus == 'guessing'">Attempts: {{Math.max(0, this.turnGuesses-this.turnGuessesUsed)}}<span class="extraHint"> + 1</span></div>
+      <div id="activeHint">{{this.roundStatus =='guessing' ? `"${state.game.turnHint}"` : "Waiting for hint..."}}</div>
+      <div id="guessCounter" v-if="roundStatus == 'guessing'">Attempts: {{Math.max(0, state.game.turnGuesses-state.game.usedGuesses)}}<span class="extraHint"> + 1</span></div>
     </div>
     <div id="winnerMsg" v-if="this.winner && gameOver"><div :style="`text-align: center; margin: 0 auto; background-color: ${this.winner.color}; color: #fff; padding: 0 .4em; border-radius: 5px;`">{{this.winner.name}} Wins!</div></div>
     <div v-if="cards.length > 0" class="cards-table" :style="{'pointer-events': (roundStatus == 'guessing' || gameOver) ? 'all' : 'none'}">
@@ -15,24 +13,17 @@
     </div>
 
     <br>
-    <button @click="giveHint" v-if="roundStatus == 'givingHint'" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': teamOfTurn.color}">GIVE HINT</button>
-    <button @click="advanceTurn" v-if="roundStatus == 'guessing'" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': cardDist.bystander.color}">END TURN</button>
 
-    <div id="modalWrapper" v-show="modalMsg">
-      <div id="modalCloser" v-if="modalcbEX || !(modalcbOK || modalcbNO)" @click="modal_on('EX')">&times;</div>
-      <div id="modalContainer" class="ui-raised">
-        <div id="modalContent">
-          <img id="modalImg" class="ui-raised" v-if="modalImg" :src="modalImg.path" :style="{width: modalImg.w, height: modalImg.h}" />
-          <div id="modalMsg">{{modalMsg}}</div>
-          <form id="turnHintForm" v-if="modalForm == 'turnHint'" @submit.prevent="modal_on('OK')">
-            <div class="form-row"><input v-model="turnHint" type="text" placeholder="Hint" ref="hintInput" /><input type="number" min="1" v-model="turnGuesses" /></div>
-            <input type="submit" hidden />
-          </form>
-          <div id="modalButtons">
-            <button id="modalOK" v-if="modalcbOK" @click="modal_on('OK')" class="ui-raised ui-shiny ui-pressable">OK</button>
-            <button id="modalNo" v-if="modalcbNO" @click="modal_on('NO')" class="ui-raised ui-shiny ui-pressable" style="background-color: #888">Cancel</button>
-          </div>
-        </div>
+    <div id="bottomBar">
+      <div style="display: flex; justify-content: flex-start;">
+        <button @click="setNewGame" v-if="gameOver" class="ui-raised ui-pressable ui-shiny">PLAY AGAIN</button>
+      </div>
+      <div>
+        <button @click="giveHint" v-if="roundStatus == 'givingHint'" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': teamOfTurn.color}">GIVE HINT</button>
+        <button @click="advanceTurn" v-if="roundStatus == 'guessing'" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': cardDist.bystander.color}">END TURN</button>
+      </div>
+      <div style="display: flex; justify-content: flex-end;">
+        <button @click="promptEndGame" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': '#888'}">END GAME</button>
       </div>
     </div>
 
@@ -57,52 +48,37 @@ export default {
   },
 
   data() { return {
+    state: this.$store.state,
     cards: [],
-    layoutSqrFactor: 5,
-    colors: ["yellow", "red", "#0bf"],
     cardDist: {
-      teamOne: { qty: 9, color: "#0bf", name: "Blue", deck: [], points: 0, img: require("@/assets/ninjas/blue.png") },
-      teamTwo: { qty: 9, color: "#f22", name: "Red", deck: [], points: 0, img: require("@/assets/ninjas/red.png") },
-      bystander: { qty: 6, color: "#f4d96a", name: "Bystander", deck: [], points: 0, img: require("@/assets/ninjas/yellow.png") },
-      assassin: { qty: 1, color: "#2c3e50", name: "Assassin", deck: [], points: 0, img: require("@/assets/ninjas/black.png") },
+      teamOne: { qty: 9, color: "#0bf", name: "Blue", deck: [], points: 0, img: null },
+      teamTwo: { qty: 9, color: "#f22", name: "Red", deck: [], points: 0, img: null },
+      bystander: { qty: 6, color: "#f4d96a", name: "Bystander", deck: [], points: 0, img: null },
+      assassin: { qty: 1, color: "#2c3e50", name: "Assassin", deck: [], points: 0, img: null },
     },
     teamOfTurn: null,
-    turnHint: "",
-    turnGuesses: 0,
-    turnGuessesUsed: 0,
     canPlay: false,
     roundStatus: '',
     gameOver: false,
     winner: null,
 
-    ninjasImgs: {
-      black: null,
-      red: null,
-      blue: null,
-      yellow: null,
-    },
-
-    modalMsg: "",
-    modalImg: null,
-    modalForm: null,
-    modalcbEX: null,
-    modalcbOK: null,
-    modalcbNO: null,
-    modal_timeout: null,
+    ninjasImgs: this.$store.state.ninjasImgs,
 
     anims: [],
   }},
 
   created() {
     this.canPlay = this.deckIsGood();
-    this.ninjasImgs.black = require('@/assets/ninjas/black.png');
-    this.ninjasImgs.blue = require('@/assets/ninjas/blue.png');
-    this.ninjasImgs.red = require('@/assets/ninjas/red.png');
-    this.ninjasImgs.yellow = require('@/assets/ninjas/yellow.png');
+    this.cardDist.assassin.img = this.ninjasImgs.black;
+    this.cardDist.teamOne.img = this.ninjasImgs.blue;
+    this.cardDist.teamTwo.img = this.ninjasImgs.red;
+    this.cardDist.bystander.img = this.ninjasImgs.yellow;
+
+    this.setNewGame();
   },
 
   computed: {
-    numCards() { return this.layoutSqrFactor**2 }
+    numCards() { return this.state.game.layoutSqrFactor**2 }
   },
 
   methods: {
@@ -114,18 +90,35 @@ export default {
       return totCards == this.numCards;
     },
 
-    setNewGame() {
+    resetBoard() {
       this.teamOfTurn = null;
       this.winner = null;
       this.gameOver = false;
       this.canPlay = false;
-      this.generateNewCards();
+    },
 
-      this.modal_open({
+    endGame() {
+      this.resetBoard();
+      this.$store.commit('endGame');     
+    },
+    promptEndGame() {
+      this.$store.dispatch('openModal', {
+        msg: "Would you like to end the game?",
+        onOK: () => this.endGame(),
+        onNO: () => {return},
+        onEX: () => {return},
+      })
+    },
+
+    setNewGame() {
+      this.resetBoard();
+      this.generateNewCards();
+      let context = this;
+      this.$store.dispatch('openModal', {
         msg: "Are you ready to start?",
         onOK() { 
-          this.modal_close();
-          setTimeout( this.advanceTurn, 0 );
+          context.$store.dispatch('closeModal');
+          setTimeout( context.advanceTurn, 0 );
         },
       })
     },
@@ -191,9 +184,8 @@ export default {
 
     handleCardFlip(e) {
       if(this.roundStatus == "guessing" && !this.gameOver) {
-        console.log(e)
         e.card.team.points++;
-        this.turnGuessesUsed++;
+        // this.turnGuessesUsed++;
         e.card.flipped = true;
 
         if (e.card.team == this.teamOfTurn) this.animateGoodFlip(e.event);
@@ -205,19 +197,21 @@ export default {
           this.roundStatus = "";
           this.winner = e.card.team;
           e.card.showTeamImg = true;
+          let context = this;
           setTimeout( () => {
-            this.modal_open({
+            this.$store.dispatch('openModal', {
               msg: this.winner.name + " wins!",
               img: {path: e.card.team.img, w:'15em', h:'15em'},
-              onEX() { this.gameOver = true; }
-            }, 3000);
+              onEX() { context.gameOver = true; },
+              timeout: 3000,
+            });
             this.canPlay = true;
           }
           , 500)
         }
 
         else {
-          if (e.card.team != this.teamOfTurn || this.turnGuessesUsed > this.turnGuesses) {
+          if (e.card.team != this.teamOfTurn || this.state.game.usedGuesses > this.state.game.turnGuesses) {
             this.pausePlay();
             setTimeout(this.advanceTurn, 1000);
           }
@@ -226,73 +220,36 @@ export default {
     },
 
     advanceTurn() {
-      this.turnHint = "";
-      this.turnGuesses = 1;
-      this.turnGuessesUsed = 0;
+      this.$store.commit('resetRound')
 
       if (this.teamOfTurn == this.cardDist.teamOne) this.teamOfTurn = this.cardDist.teamTwo;
       else this.teamOfTurn = this.cardDist.teamOne;
       
       this.roundStatus = "givingHint";
       
-      this.modal_open({
+      this.$store.dispatch('openModal', {
         msg: this.teamOfTurn.name + "'s turn!",
         img: {path: this.teamOfTurn.img, w:'5em', h:'5em'},
-      }, 3000)
+        timeout: 3000,
+      })
     },
 
     giveHint() {
-      this.modal_open({
+      let context = this;
+      this.$store.dispatch('openModal', {
         msg: "Write a hint for your team!",
         img: {path: this.teamOfTurn.img, w:'5em', h:'5em'},
         form: 'turnHint',
         onOK() { 
-          this.canPlay = true;
-          this.roundStatus = "guessing";
-
+          context.canPlay = true;
+          context.roundStatus = "guessing";
         },
-        onEX: () => console.log('closed'),
-        onNO: () => console.log('closed'),
-        isValid() {
-          if (!this.turnHint) this.modal_alert = "You must provide a hint!";
-          return this.turnHint
-        }
+        onEX: () => {return},
+        onNO: () => {return},
+        isValid: () => { return context.$store.state.game.turnHint },
+        alert: "You must provide a hint!",
       })
-      this.$nextTick(() => {
-        this.focusInput();
-      });
     },
-
-    focusInput() {
-      this.$refs.hintInput.focus();
-    },
-
-
-    modal_open(props, timeout = 0) {
-      this.modalForm = props.form;
-      this.modalcbEX = props.onEX;
-      this.modalcbOK = props.onOK;
-      this.modalcbNO = props.onNO;
-      this.modalImg = props.img;
-      this.modalMsg = props.msg;
-      this.modal_isValid = props.isValid || function() { return true };
-
-      if (timeout) this.modal_timeout = setTimeout( this.modal_close, timeout);
-    },
-    modal_on(action) {
-      if (action == "OK" && !this.modal_isValid()) return alert(this.modal_alert);
-      if (this["modalcb"+action]) {
-        this["modalcb"+action]();
-      }
-      this.modal_close();
-    },
-    modal_close() {
-      if (this.modalcbEX) this.modalcbEX();
-      this.modalMsg = "";
-      this.modalcbOK = this.modalcbNO = this.modalcbEX = this.modalImg = this.modalForm = null;
-      window.clearTimeout(this.modal_timeout);
-    },
-
 
     removeAnim(id){
       this.anims = this.anims.filter(a => a.id != id)
@@ -331,15 +288,6 @@ h3 {
   margin: 40px 0 0;
 }
 
-button {
-  border: none;
-  padding: 1em 2em;
-  font-weight: bold;
-  color: white;
-  background-color: #0bf;
-  margin: .5em;
-}
-
 .cards-table {
   display: flex;
   flex-wrap: wrap;
@@ -352,93 +300,6 @@ button {
 }
 
 
-
-
-
-
-
-
-
-
-
-div#modalWrapper {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #0003;
-}
-
-div#modalCloser {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    cursor: pointer;
-    user-select: none;
-    text-align: right;
-    padding: .5rem 1rem;
-    box-sizing: border-box;
-    font-size: 2.5em;
-    color: #fff;
-}
-
-div#modalContainer {
-    position: relative;
-    width: 100%;
-    background: #fff;
-    padding: 2rem;
-    display: flex;
-    justify-content: center;
-}
-
-div#modalContent {
-    max-width: 40rem;
-}
-
-div#modalMsg {
-    text-align: center;
-    font-weight: bold;
-    font-size: 1.5em;
-}
-img#modalImg {
-    max-width: 100%;
-}
-
-
-
-
-div#scoreboard {
-    display: flex;
-    justify-content: space-between;
-    font-weight: bold;
-    font-size: 1.75rem;
-    padding: .25em;
-}
-
-span.extraHint {
-    color: #888;
-}
-
-.form-row {
-    margin: 1rem 0;
-    display: flex;
-}
-
-form input {
-    font-size: 1.25em;
-    padding: .25em;
-}
-
-input[type="number"] {
-    text-align: right;
-    width: 3em;
-}
 
 
 
@@ -458,6 +319,15 @@ span.extraHint {
 }
 
 
+div#bottomBar {
+  display: flex;
+}
+div#bottomBar > div {
+  display: flex;
+  flex-grow: 1;
+  width: 100%;
+  justify-content: center;
+}
 
 
 #animationOverlay {

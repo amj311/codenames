@@ -1,11 +1,18 @@
 <template>
-  <div class="wrapper" v-show="show">
-    <div class="modal" v-on:click="this.ok">
-      <div class="card-face front ui-raised" :class="{'ui-pressable': !card.flipped && !freeRotate}" >
-        <div>{{ card.word }}</div>
-      </div>
-      <div class="card-face back ui-raised ui-shiny" :class="{'ui-shift-shiny': card.flipped}" :style="{backgroundColor: card.color}">
-        <!-- <div>{{ card.word }}</div> -->
+  <div id="modalWrapper" v-show="state.modal.msg">
+    <div id="modalCloser" v-if="state.modal.onEX || !(state.modal.onOK || state.modal.onNO)" @click="modal_on('EX')">&times;</div>
+    <div id="modalContainer" class="ui-raised">
+      <div id="modalContent">
+        <img id="modalImg" class="ui-raised" v-if="state.modal.img" :src="state.modal.img.path" :style="{width: state.modal.img.w, height: state.modal.img.h}" />
+        <div id="modalMsg">{{state.modal.msg}}</div>
+        <form id="turnHintForm" v-if="state.modal.form == 'turnHint'" @submit.prevent="modal_on('OK')">
+          <div class="form-row"><input v-model="turnHint" type="text" placeholder="Hint" ref="hintInput" /><input type="number" min="1" v-model="turnGuesses" /></div>
+          <input type="submit" hidden />
+        </form>
+        <div id="modalButtons">
+          <button id="modalOK" v-if="state.modal.onOK" @click="modal_on('OK')" class="ui-raised ui-shiny ui-pressable">OK</button>
+          <button id="modalNo" v-if="state.modal.onNO" @click="modal_on('NO')" class="ui-raised ui-shiny ui-pressable" style="background-color: #888">Cancel</button>
+        </div>
       </div>
     </div>
   </div>
@@ -14,67 +21,123 @@
 
 <script>
 export default {
-  name: 'Card',
-  props: [],
+  name: 'Modal',
 
-  data() { return {
-    show: true
-  }},
+  data() { return ({
+    state: this.$store.state,
+  })},
 
-  methods: {
-    flipCard: function() {
-      if (!this.card.flipped && !this.freeRotate) {
-        this.card.flipped = true;
-        this.$emit('flipped')
+  computed: {
+    turnHint: {
+      get() {
+        return this.$store.state.game.turnHint;
+      },
+      set(value) {
+        this.$store.commit(
+          'newHint',
+          {turnHint: value, turnGuesses: this.turnGuesses}
+        )
+      }
+    },
+    turnGuesses: {
+      get() {
+        return this.$store.state.game.turnGuesses;
+      },
+      set(value) {
+        this.$store.commit(
+          'newHint',
+          {turnHint: this.turnHint, turnGuesses: value}
+        )
       }
     }
-  }
+  },
+
+  methods: {
+    modal_on(action) {
+      this.$store.dispatch('modal_on', action)
+    },
+
+    sendHint() {
+      if (!this.turnHint) alert("You must provide a hint!");
+      else {
+        this.$store.commit(
+          'newHint',
+          {turnHint: this.turnHint, turnGuesses: this.turnGuesses}
+        )
+        this.modal_on('OK');
+        this.turnGuesses = 1;
+        this.turnHint = "";
+      }
+    }
+  },
+
 }
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-.wrapper {
-  perspective: 500px;
-  height: 5em;
+div#modalWrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #0003;
 }
 
-.card {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  background: #fff;
-  border-radius: 10px;
-  transition: 500ms;
-  transform-style: preserve-3d;
-}
-.flipped .card, .freeRotate .card {
-  transform: rotateX(180deg);
-}
-.freeRotate:hover div.card {
-  transform: rotateX(0deg);
-}
-
-.card-face {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  box-sizing: border-box;
-  border-radius: 10px;
-  padding: 1em;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  user-select: none;
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
+div#modalCloser {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+    user-select: none;
+    text-align: right;
+    padding: .5rem 1rem;
+    box-sizing: border-box;
+    font-size: 2.5em;
+    color: #fff;
 }
 
-.back {
-  transform: rotateX(180deg)
+div#modalContainer {
+    position: relative;
+    width: 100%;
+    background: #fff;
+    padding: 2rem;
+    display: flex;
+    justify-content: center;
 }
-.back.ui-shiny.ui-shift-shiny::after {
-  transition-delay: 250ms;
+
+div#modalContent {
+    max-width: 40rem;
+}
+
+div#modalMsg {
+    text-align: center;
+    font-weight: bold;
+    font-size: 1.5em;
+}
+img#modalImg {
+    max-width: 100%;
+}
+
+.form-row {
+    margin: 1rem 0;
+    display: flex;
+}
+
+form input {
+    font-size: 1.25em;
+    padding: .25em;
+}
+
+input[type="number"] {
+    text-align: right;
+    width: 3em;
 }
 
 </style>

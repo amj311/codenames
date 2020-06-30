@@ -23,8 +23,6 @@ export default {
 
   methods: {
     emitClick(event) {
-      console.log('flipping ' + this.card.word)
-      console.log(event)
       this.$emit('tryFlip', {event, card: this.card})
     }
   }
