@@ -1,6 +1,16 @@
-var express = require('express');
-var app = express();
+const express = require('express');
+const routes = require('./routes');
 
-app.use(express.static('frontend/dist'));
+const app = express();
 
-app.listen(3001, () => console.log("Test Express running on 3001"))
+// set our port
+const port = process.env.PORT || 8080;
+
+// routes
+app.use('/', routes);
+
+// start app at localhost:8080
+app.listen(port);
+
+console.log(`Listening on ${port}`);
+module.exports = app;
