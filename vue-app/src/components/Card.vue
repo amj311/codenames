@@ -74,14 +74,17 @@ export default {
   position: relative;
   outline: none;
   user-select: none;
-  background-position: 40% 50%;
+  background-position: 0% 50%;
   background-size: 300% 300%;
   transition: 400ms 200ms;
 }
-.flipped:hover .back, .freeRotate:hover .back {
+.freeRotate .back {
+  background-position: 40% 50%;
+}
+.freeRotate:hover .back {
   background-position: 0% 50%;
 }
-.flipped:not(.freeRotate):hover .back {
+.flipped:not(.freeRotate) .back {
   background-position: 40% 50%;
 }
 
