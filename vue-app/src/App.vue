@@ -6,7 +6,6 @@
     <!-- <HostView msg="Codenames"/> -->
     <Modal />
 
-
   </div>
 </template>
 
@@ -14,6 +13,7 @@
 import PlayView from './components/PlayView.vue'
 import StartView from './components/StartView.vue'
 import Modal from './components/Modal.vue'
+let wordSet = require('./assets/words/test_rel.json');
 
 export default {
   name: 'App',
@@ -22,6 +22,10 @@ export default {
     StartView,
     Modal,
   },
+  created() {
+    this.$store.commit('setWords', wordSet.words);
+  },
+
   data() { return ({
     state: this.$store.state,
   })}
@@ -36,7 +40,7 @@ body {
 body::before {
   content: '';
   display: block;
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;

@@ -6,8 +6,8 @@
       <div id="guessCounter" v-if="gameState.roundStatus == 'guessing'">Attempts: {{Math.max(0, gameState.turnGuesses-gameState.usedGuesses)}}<span class="extraHint"> + 1</span></div>
     </div>
     <div id="winnerMsg" v-if="gameState.winner && gameState.gameOver"><div :style="`text-align: center; margin: 0 auto; background-color: ${gameState.winner.color}; color: #fff; padding: 0 .4em; border-radius: 5px;`">{{gameState.winner.name}} Wins!</div></div>
-    <div v-if="cards.length > 0" class="cards-table" :style="{'pointer-events': (gameState.roundStatus == 'guessing' || gameState.gameOver) ? 'all' : 'none'}">
-      <div v-for="card in cards" :key="card.word" class="card-cell">
+    <div v-if="boardState.cards.length > 0" class="cards-table" :style="{'pointer-events': (gameState.roundStatus == 'guessing' || gameState.gameOver) ? 'all' : 'none'}">
+      <div v-for="card in boardState.cards" :key="card.word" class="card-cell">
         <Card :freeRotate="gameState.gameOver" :card="card" @tryFlip="handleCardFlip" />
       </div>
     </div>
@@ -38,7 +38,6 @@
 
 <script>
 import Card from './Card.vue'
-import wordSet from '../assets/words/test_rel.json'
 
 export default {
   name: 'HostView',
@@ -49,11 +48,8 @@ export default {
 
   data() { return {
     state: this.$store.state,
-    gameState: this.$store.state.game,
-
-    cards: [],
-    
-
+    gameState: this.$store.state.game,    
+    boardState: this.$store.state.board,
     ninjasImgs: this.$store.state.ninjasImgs,
 
     anims: [],
@@ -70,25 +66,20 @@ export default {
   },
 
   computed: {
-    numCards() { return this.gameState.layoutSqrFactor**2 }
   },
 
   methods: {
     deckIsGood() {
       let totCards = 0;
-      for (let [, team] of Object.entries(this.gameState.teams)) {
+      for (let team of Object.values(this.gameState.teams)) {
         totCards += team.qty;
       }
       return totCards == this.numCards;
     },
 
     resetBoard() {
-      this.$store.commit("updateGameState", {
-        teamOfTurn: null,
-        winner: null,
-        gameOver: false,
-        canPlay: false,
-      })
+      this.$store.commit('clearBoard');
+      this.$store.commit("resetGame")
     },
 
     endGame() {
@@ -108,63 +99,24 @@ export default {
       this.resetBoard();
       this.generateNewCards();
       let context = this;
-      this.$store.dispatch('openModal', {
+      this.$nextTick( ()=> this.$store.dispatch('openModal', {
         msg: "Are you ready to start?",
         onOK() { 
           context.$store.dispatch('closeModal');
           setTimeout( context.advanceTurn, 0 );
         },
-      })
-    },
-
-    clearBoard() {
-      this.cards = [];
-      for (let team of Object.values(this.gameState.teams)) {
-        team.deck = [];
-        team.points = 0;
-      }
-
+      }))
     },
 
     generateNewCards() {
-      this.clearBoard();
-      let openCardIdxs = [];
-      let usedWordIdxs = [];
-      for (let i = 0; i < this.numCards; i++) openCardIdxs.push(i);
-
-      do {
-        let randIdx = openCardIdxs[Math.floor(Math.random()*openCardIdxs.length)];
-        if (openCardIdxs.lastIndexOf(randIdx) < 0) continue;
-        openCardIdxs = openCardIdxs.filter(idx => idx != randIdx);
-        
-        let wordIdx;
-        do {
-          wordIdx = Math.floor(Math.random()*wordSet.words.length);
-        } while (usedWordIdxs.lastIndexOf(wordIdx) != -1);
-        usedWordIdxs.push(wordIdx);
-
-        let teams = Object.entries(this.gameState.teams);
-        let team;
-        let teamCap = 0;
-        let teamIdx = 0;
-        do {
-          team = teams[teamIdx][1];
-          teamCap += team.qty;
-          teamIdx++;
-        } while (teamCap <= randIdx)
-
-        let card = {word: wordSet.words[wordIdx], color: team.color, flipped: false, team };
-        this.cards.push( card )
-        team.deck.push(this.cards[this.cards.length-1])
-
-      } while (openCardIdxs.length > 0);
+      this.$store.dispatch('generateNewCards');
 
       this.printSecretKey();
     },
 
     printSecretKey() {
       console.group('cards')
-      let cards = this.cards;
+      let cards = this.state.board.cards;
       for (let i = 0; i < cards.length; i+=5) {
         console.log(`%c ${cards[i].word[0]} %c ${cards[i+1].word[0]} %c ${cards[i+2].word[0]} %c ${cards[i+3].word[0]} %c ${cards[i+4].word[0]} `, `color: #777; background-color: ${cards[i].color}`, `color: #777; background-color: ${cards[i+1].color}`, `color: #777; background-color: ${cards[i+2].color}`, `color: #777; background-color: ${cards[i+3].color}`, `color: #777; background-color: ${cards[i+4].color}`);
       }

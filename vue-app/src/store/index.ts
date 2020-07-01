@@ -1,14 +1,20 @@
 import Vue from 'vue'
 import Vuex from 'vuex'
+import socketio from 'socket.io-client'
 
 Vue.use(Vuex)
 
 export default new Vuex.Store({
   state: {
     view: 'start',
-    game: {
+    wordSet: [],
+    board: {
       layoutSqrFactor: 5,
-      
+      cards: [],
+    },
+    game: {
+      mode: null,
+
       teams: {
         teamOne: { qty: 9, color: "#0bf", name: "Blue", deck: [], points: 0, img: null },
         teamTwo: { qty: 9, color: "#f22", name: "Red", deck: [], points: 0, img: null },
@@ -26,7 +32,10 @@ export default new Vuex.Store({
       usedGuesses: 0,
     },
     user: {
-
+      socket: null,
+      room: null,
+      role: null,
+      team: null,
     },
 
     ninjasImgs: {
@@ -66,6 +75,16 @@ export default new Vuex.Store({
       state.game.turnGuesses = 1;
       state.game.usedGuesses = 0;
     },
+    resetGame(state){
+      state.game.teamOfTurn = null;
+      state.game.canPlay = false;
+      state.game.roundStatus = '';
+      state.game.gameOver = false;
+      state.game.winner = null;
+      state.game.turnHint = "";
+      state.game.turnGuesses = 1;
+      state.game.usedGuesses = 0;
+    },
     newHint(state, props: {turnHint: string, turnGuesses: number}) {
       state.game.turnHint = props.turnHint;
       state.game.turnGuesses = props.turnGuesses;
@@ -83,7 +102,37 @@ export default new Vuex.Store({
       state.modal.alert = props.alert;
       state.modal.isValid = props.isValid || function() { return true };
     },
+
+    setWords(state, set) {
+      state.wordSet = set;
+    },
+
+    clearBoard(state) {
+      state.board.cards = [];
+      
+      let team: any;
+      for (team of Object.values(state.game.teams)) {
+        team.deck = [];
+        team.points = 0;
+      }
+    },
+
+
+
+
+    setupSocket(context, room:string) {
+      let socket = context.user.socket;
+      context.user.room = room;
+      socket = socketio('localhost:3000');
+      socket.on('msg', () => {
+        console.log('I\'m connected!');
+        socket.emit('joinRoom',room)
+      })
+    }
   },
+
+
+
   actions: {
     openModal(context: any, props) {
       context.commit('updateModal', props)
@@ -102,6 +151,41 @@ export default new Vuex.Store({
       context.state.modal.onOK = context.state.modal.onNO = context.state.modal.onEX = context.state.modal.img = context.state.modal.form = null;
       window.clearTimeout(context.state.modal.closeTimeout);
     },
+    generateNewCards(context) {
+      context.commit('clearBoard');
+      let openCardIdxs = [];
+      let usedWordIdxs = [];
+      let numCards: number = context.state.board.layoutSqrFactor ** 2;
+      for (let i = 0; i < numCards; i++) openCardIdxs.push(i);
+
+      do {
+        let randIdx: number = openCardIdxs[Math.floor(Math.random()*openCardIdxs.length)];
+        if (openCardIdxs.lastIndexOf(randIdx) < 0) continue;
+        openCardIdxs = openCardIdxs.filter(idx => idx != randIdx);
+        
+        let wordIdx;
+        do {
+          wordIdx = Math.floor(Math.random()*context.state.wordSet.length);
+        } while (usedWordIdxs.lastIndexOf(wordIdx) != -1);
+        usedWordIdxs.push(wordIdx);
+
+        let teams = Object.entries(context.state.game.teams);
+        let team: any;
+        let teamCap = 0;
+        let teamIdx = 0;
+        do {
+          team = teams[teamIdx][1];
+          teamCap += team.qty;
+          teamIdx++;
+        } while (teamCap <= randIdx)
+
+        let card = {word: context.state.wordSet[wordIdx], color: team.color, flipped: false, team };
+        context.state.board.cards.push( card )
+        team.deck.push(card)
+
+      } while (openCardIdxs.length > 0);
+    },
+
   },
   modules: {
   }

@@ -6,6 +6,7 @@
 </template>
 
 <script>
+import axios from 'axios'
 
 export default {
   name: 'Start',
@@ -13,10 +14,12 @@ export default {
   },
   methods: {
     startGame() {
-        this.$store.commit('newGame');
+      axios.get('http://localhost:3000/api/newroom').then( res=> {
+        this.$store.commit('setupSocket', res.data.rid)
+      })
     },
     joinGame() {
-        this.$store.commit('newGame');
+      this.$store.commit('newGame');
     }
   }
 }
