@@ -14,15 +14,6 @@
         </div>
         <form v-if="activeMenu == 'new'" @submit.prevent="startGame" id="newMenu">
           <div class="form-row" id="mode">
-            <input type="radio" id="remote" v-model="newGameMode"  value="remote" hidden>
-            <label
-              for="remote"
-              class="ui-shiny ui-raised"
-              :class="{'ui-pressable': newGameMode != 'remote'}"
-            >
-              <i class="material-icons">phonelink_ring</i><i class="material-icons">phonelink_ring</i><br>
-              Remote Mode
-            </label>
             <input type="radio" id="party" v-model="newGameMode"  value="party" hidden>
             <label
               for="party"
@@ -31,6 +22,16 @@
             >
               <i class="material-icons">devices</i><br>
               Party Mode
+            </label>
+        
+            <input type="radio" id="remote" v-model="newGameMode"  value="remote" hidden>
+            <label
+              for="remote"
+              class="ui-shiny ui-raised"
+              :class="{'ui-pressable': newGameMode != 'remote'}"
+            >
+              <i class="material-icons">phonelink_ring</i><i class="material-icons" style="transform: rotateY(180deg)">phonelink_ring</i><br>
+              Remote Mode
             </label>
           </div>
           <!-- <div id="numCards" class="form-row">
@@ -42,7 +43,7 @@
         </form>
         <form v-else-if="activeMenu == 'join'" @submit.prevent="joinGame" id="joinMenu">
           <div class="form-row">
-            <input type="text" v-model="roomToJoin" placeholder="Enter room code" style="text-transform: uppercase" maxlength="6">
+            <input type="text" ref="roomToJoin" v-model="roomToJoin" placeholder="Enter room code" style="text-transform: uppercase" maxlength="6">
             <button role="submit" :disabled="roomToJoin.length < 6" class="ui-pressable ui-shiny ui-raised">GO!</button>
           </div>
         </form>
@@ -62,7 +63,7 @@ export default {
   data() {return ({
     showMenu: false,
     activeMenu: 'new',
-    newGameMode: 'remote',
+    newGameMode: 'party',
     newGameSqrFactor: 5,
     roomToJoin: '',
   })},
@@ -70,18 +71,18 @@ export default {
     openMenu(menu) {
       this.showMenu = true;
       this.activeMenu = menu;
+      if (menu == "join") this.$nextTick( () => this.$refs.roomToJoin.focus() )
     },
     closeMenu() {
       this.showMenu = false;
     },
     startGame() {
       axios.get('http://localhost:3000/api/newroom').then( res=> {
-        this.$store.commit('setupSocket', res.data.rid);
-        this.$store.commit('setupHost');
+        this.$store.dispatch('setupGameRoom', {id: res.data.rid, mode: this.newGameMode});
       })
     },
     joinGame() {
-      this.$store.commit('newGame');
+      this.$store.commit('goToView', 'room')
     }
   }
 }
@@ -155,13 +156,14 @@ div#closeMenu {
   padding: 1em;
   margin: 0 .5em;
   font-size: 1em;
+  width: 7em;
 }
 #mode.form-row input:checked + label {
   background-color: #0bf;
 }
 
 #mode.form-row label i {
-  font-size: 2em;
+  font-size: 2.5em;
   margin: .35em 0;
 }
 

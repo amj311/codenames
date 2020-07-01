@@ -1,16 +1,16 @@
 <template>
   <div>
-    <HostView msg="Codenames"/>
+    <Board msg="Codenames"/>
   </div>
 </template>
 
 <script>
-import HostView from './HostView.vue'
+import Board from './Board.vue'
 
 export default {
   name: 'Play',
   components: {
-    HostView,
+    Board,
   }
 }
 </script>

@@ -6,8 +6,8 @@
       <div id="guessCounter" v-if="gameState.roundStatus == 'guessing'">Attempts: {{Math.max(0, gameState.turnGuesses-gameState.usedGuesses)}}<span class="extraHint"> + 1</span></div>
     </div>
     <div id="winnerMsg" v-if="gameState.winner && gameState.gameOver"><div :style="`text-align: center; margin: 0 auto; background-color: ${gameState.winner.color}; color: #fff; padding: 0 .4em; border-radius: 5px;`">{{gameState.winner.name}} Wins!</div></div>
-    <div v-if="boardState.cards.length > 0" class="cards-table" :style="{'pointer-events': (gameState.roundStatus == 'guessing' || gameState.gameOver) ? 'all' : 'none'}">
-      <div v-for="card in boardState.cards" :key="card.word" class="card-cell">
+    <div v-if="gameState.cards.length > 0" class="cards-table" :style="{'pointer-events': (gameState.roundStatus == 'guessing' || gameState.gameOver) ? 'all' : 'none'}">
+      <div v-for="card in gameState.cards" :key="card.word" class="card-cell">
         <Card :freeRotate="gameState.gameOver" :card="card" @tryFlip="handleCardFlip" />
       </div>
     </div>
@@ -16,14 +16,14 @@
 
     <div id="bottomBar">
       <div style="display: flex; justify-content: flex-start;">
-        <button @click="setNewGame" v-if="gameState.gameOver" class="ui-raised ui-pressable ui-shiny">PLAY AGAIN</button>
       </div>
       <div>
         <button @click="giveHint" v-if="gameState.roundStatus == 'givingHint'" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': gameState.teamOfTurn.color}">GIVE HINT</button>
         <button @click="advanceTurn" v-if="gameState.roundStatus == 'guessing'" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': gameState.teams.bystander.color}">END TURN</button>
+        <button @click="setNewGame" v-if="gameState.gameOver" class="ui-raised ui-pressable ui-shiny">PLAY AGAIN</button>
       </div>
       <div style="display: flex; justify-content: flex-end;">
-        <button @click="promptEndGame" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': '#888'}">END GAME</button>
+        <button @click="promptEndGame" v-if="!gameState.gameOver" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': '#888'}">END GAME</button>
       </div>
     </div>
 
@@ -40,7 +40,7 @@
 import Card from './Card.vue'
 
 export default {
-  name: 'HostView',
+  name: 'Board',
   props: ["msg"],
   components: {
     Card
@@ -48,8 +48,7 @@ export default {
 
   data() { return {
     state: this.$store.state,
-    gameState: this.$store.state.game,    
-    boardState: this.$store.state.board,
+    gameState: this.$store.state.game,
     ninjasImgs: this.$store.state.ninjasImgs,
 
     anims: [],
@@ -84,7 +83,7 @@ export default {
 
     endGame() {
       this.resetBoard();
-      this.$store.commit('endGame');     
+      this.$store.commit('goToView','room');     
     },
     promptEndGame() {
       this.$store.dispatch('openModal', {
@@ -116,7 +115,7 @@ export default {
 
     printSecretKey() {
       console.group('cards')
-      let cards = this.state.board.cards;
+      let cards = this.state.game.cards;
       for (let i = 0; i < cards.length; i+=5) {
         console.log(`%c ${cards[i].word[0]} %c ${cards[i+1].word[0]} %c ${cards[i+2].word[0]} %c ${cards[i+3].word[0]} %c ${cards[i+4].word[0]} `, `color: #777; background-color: ${cards[i].color}`, `color: #777; background-color: ${cards[i+1].color}`, `color: #777; background-color: ${cards[i+2].color}`, `color: #777; background-color: ${cards[i+3].color}`, `color: #777; background-color: ${cards[i+4].color}`);
       }
@@ -124,7 +123,7 @@ export default {
     },
 
     pausePlay(){
-      this.$store.commit('updateGameState', {
+      this.$store.dispatch('updateGameState', {
         roundStatus: "",
         canPlay: false,
       })
@@ -143,7 +142,7 @@ export default {
         if (e.card.team.points == e.card.team.qty && e.card.team != this.gameState.teams.bystander) {
           this.pausePlay();
           
-          this.$store.commit('updateGameState', {
+          this.$store.dispatch('updateGameState', {
             roundStatus: "",
             winner: e.card.team,
           });
@@ -151,7 +150,7 @@ export default {
           e.card.showTeamImg = true;
           let context = this;
           setTimeout( () => {
-            this.$store.commit('updateGameState', {canPlay: true});
+            this.$store.dispatch('updateGameState', {canPlay: true});
             this.$store.dispatch('openModal', {
               msg: context.gameState.winner.name + " wins!",
               img: {path: e.card.team.img, w:'15em', h:'15em'},
@@ -174,10 +173,10 @@ export default {
     advanceTurn() {
       this.$store.commit('resetRound')
 
-      if (this.gameState.teamOfTurn == this.gameState.teams.teamOne) this.$store.commit('updateGameState', {teamOfTurn: this.gameState.teams.teamTwo});
-      else this.$store.commit('updateGameState', {teamOfTurn: this.gameState.teams.teamOne});
+      if (this.gameState.teamOfTurn == this.gameState.teams.teamOne) this.$store.dispatch('updateGameState', {teamOfTurn: this.gameState.teams.teamTwo});
+      else this.$store.dispatch('updateGameState', {teamOfTurn: this.gameState.teams.teamOne});
       
-      this.$store.commit('updateGameState', {roundStatus: 'givingHint'});
+      this.$store.dispatch('updateGameState', {roundStatus: 'givingHint'});
       
       this.$store.dispatch('openModal', {
         msg: this.gameState.teamOfTurn.name + "'s turn!",
@@ -193,7 +192,7 @@ export default {
         img: {path: this.gameState.teamOfTurn.img, w:'5em', h:'5em'},
         form: 'turnHint',
         onOK() {
-          context.$store.commit('updateGameState', {
+          context.$store.dispatch('updateGameState', {
             canPlay: true,
             roundStatus: "guessing",
           });

@@ -3,9 +3,10 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
 
     <StartView v-if="state.view == 'start'" />
-    <PlayView v-else-if="state.view == 'play'" />
+    <PlayView v-if="state.view == 'play'" />
+    <RoomView v-if="state.view == 'room'" />
     <!-- <img alt="Vue logo" src="./assets/logo.png"> -->
-    <!-- <HostView msg="Codenames"/> -->
+    <!-- <Board msg="Codenames"/> -->
     <Modal />
 
   </div>
@@ -14,6 +15,7 @@
 <script>
 import PlayView from './components/PlayView.vue'
 import StartView from './components/StartView.vue'
+import RoomView from './components/RoomView.vue'
 import Modal from './components/Modal.vue'
 let wordSet = require('./assets/words/test_rel.json');
 
@@ -22,6 +24,7 @@ export default {
   components: {
     PlayView,
     StartView,
+    RoomView,
     Modal,
   },
   created() {

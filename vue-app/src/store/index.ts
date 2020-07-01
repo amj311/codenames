@@ -8,12 +8,14 @@ export default new Vuex.Store({
   state: {
     view: 'start',
     wordSet: [],
-    board: {
-      layoutSqrFactor: 5,
-      cards: [],
+    room: {
+      mode: null,
+      id: null,
+      players: []
     },
     game: {
-      mode: null,
+      layoutSqrFactor: 5,
+      cards: [],
 
       teams: {
         teamOne: { qty: 9, color: "#0bf", name: "Blue", deck: [], points: 0, img: null },
@@ -33,7 +35,6 @@ export default new Vuex.Store({
     },
     user: {
       socket: null,
-      room: null,
       role: null,
       team: null,
     },
@@ -57,17 +58,16 @@ export default new Vuex.Store({
     }
   },
   mutations: {
-    newGame(state: any) {
-      state.view = "play";
+    goToView(state: any, view:string) {
+      state.view = view;
     },
-    endGame(state: any) {
-      state.view = "start";
-    },
-    updateGameState(state, props) {
-      let stateKeys = Object.keys(state.game);
-      for (let key of Object.keys(props)) {
-        if (stateKeys.lastIndexOf(key) >= 0) state.game[key] = props[key];
-        else console.error("Game state has no property " + key)
+    updateStatePortion(state, options:{portion:string, props:any}) {
+      let stateKeys = Object.keys(state[options.portion]);
+      if (!state[options.portion]) return console.log('State has no such member: '+options.portion)
+
+      for (let key of Object.keys(options.props)) {
+        if (stateKeys.lastIndexOf(key) >= 0) state[options.portion][key] = options.props[key];
+        else console.error("state."+options.portion+" has no property " + key)
       }
     },
     resetRound(state) {
@@ -108,7 +108,7 @@ export default new Vuex.Store({
     },
 
     clearBoard(state) {
-      state.board.cards = [];
+      state.game.cards = [];
       
       let team: any;
       for (team of Object.values(state.game.teams)) {
@@ -116,27 +116,65 @@ export default new Vuex.Store({
         team.points = 0;
       }
     },
-
-
-
-
-    setupSocket(context, room:string) {
-      if (!context.user.socket) context.user.socket = socketio('localhost:3000');
-      let socket = context.user.socket;
-      socket.on('connect', () => console.log('connected'))
-      socket.on('msg', (msg: string) => console.log(msg));
-
-      socket.emit('joinRoom',room, () => {
-        context.user.room = room;
-        console.log("I'm connected to room: "+room)
-      })
-
-    }
   },
 
 
 
   actions: {
+    updateGameState(context, props) {
+      context.commit('updateStatePortion', {portion:'game',props})
+    },
+    updateRoomState(context, props) {
+      context.commit('updateStatePortion', {portion:'room',props})
+    },
+    updateUserState(context, props) {
+      context.commit('updateStatePortion', {portion:'user',props})
+    },
+
+
+
+    setupSocket(context:any, options:{rid:string, cb: any}) {
+      let state = context.state;
+      if (!state.user.socket) state.user.socket = socketio('localhost:3000');
+      let socket = state.user.socket;
+      socket.on('connect', () => console.log('connected'))
+
+      socket.emit('joinRoom',options.rid, () => {
+        state.room.id = options.rid;
+        console.log("I'm connected to room: "+options.rid)
+        options.cb();
+      })
+
+      socket.on('msg', (msg: string) => console.log(msg));
+      socket.on('updateGame', (props:any)=> {
+        context.dispatch('updateGameState', props)
+      })
+      socket.on('updateRoom', (props:any)=> {
+        context.dispatch('updateRoomState', props)
+      })
+      socket.on('updateUser', (props:any)=> {
+        context.dispatch('updateUserState', props)
+      })
+
+    },
+    setupGameRoom(context, props: {id:string, mode: string}) {
+      context.dispatch('setupSocket', {rid: props.id, cb: () => {
+        context.dispatch('updateRoomState', props)
+        context.commit('goToView', 'room')
+        console.log(context.state.view)
+      }});
+
+    },
+    emitRoom(context) {
+      context.state.user.socket.emit('updateRoom', context.state.room)
+    },
+    emitGame(context) {
+      context.state.user.socket.emit('updateGame', context.state.game)
+    },
+
+
+
+
     openModal(context: any, props) {
       context.commit('updateModal', props)
       if (props.timeout) context.state.modal.closeTimeout = setTimeout( () => context.dispatch('closeModal'), props.timeout);
@@ -158,7 +196,7 @@ export default new Vuex.Store({
       context.commit('clearBoard');
       let openCardIdxs = [];
       let usedWordIdxs = [];
-      let numCards: number = context.state.board.layoutSqrFactor ** 2;
+      let numCards: number = context.state.game.layoutSqrFactor ** 2;
       for (let i = 0; i < numCards; i++) openCardIdxs.push(i);
 
       do {
@@ -183,7 +221,7 @@ export default new Vuex.Store({
         } while (teamCap <= randIdx)
 
         let card = {word: context.state.wordSet[wordIdx], color: team.color, flipped: false, team };
-        context.state.board.cards.push( card )
+        context.state.game.cards.push( card )
         team.deck.push(card)
 
       } while (openCardIdxs.length > 0);
