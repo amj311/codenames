@@ -24,6 +24,7 @@
     "socket.io-client": "^2.3.0",
     "vue": "^2.6.11",
     "vue-class-component": "^7.2.3",
+    "vue-material": "^1.0.0-beta-14",
     "vue-property-decorator": "^8.4.2",
     "vuex": "^3.4.0"
   },

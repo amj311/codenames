@@ -121,13 +121,16 @@ export default new Vuex.Store({
 
 
     setupSocket(context, room:string) {
-      context.user.room = room;
       if (!context.user.socket) context.user.socket = socketio('localhost:3000');
       let socket = context.user.socket;
-      socket.on('msg', () => {
-        console.log('I\'m connected!');
-        socket.emit('joinRoom',room)
+      socket.on('connect', () => console.log('connected'))
+      socket.on('msg', (msg: string) => console.log(msg));
+
+      socket.emit('joinRoom',room, () => {
+        context.user.room = room;
+        console.log("I'm connected to room: "+room)
       })
+
     }
   },
 

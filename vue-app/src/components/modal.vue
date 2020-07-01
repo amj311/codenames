@@ -125,19 +125,4 @@ img#modalImg {
     max-width: 100%;
 }
 
-.form-row {
-    margin: 1rem 0;
-    display: flex;
-}
-
-form input {
-    font-size: 1.25em;
-    padding: .25em;
-}
-
-input[type="number"] {
-    text-align: right;
-    width: 3em;
-}
-
 </style>

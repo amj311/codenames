@@ -35,6 +35,7 @@ function newRoom() {
   do {
     newRoomId = crypto.randomBytes(3).toString('hex');
   } while ( rooms.filter( r => r.rid === newRoomId ).length > 0 )
+  rooms.push(newRoomId)
   return newRoomId;
 }
 
@@ -80,13 +81,15 @@ socketio.on('connection', (socket) => {
   console.log("New socket connected: "+socket.id)
   socket.emit('msg','Hi')
 
-  socket.on('joinRoom', (roomId) => {
+  socket.on('joinRoom', (roomId, cb) => {
     let roomMatch = rooms.filter(rid => rid === roomId)[0]
 
     if (roomMatch) {
       console.log('Found requested room '+roomMatch)			
       socket.join(roomMatch)
+      cb();
     }
+    else console.log("Could not find room: "+roomId)
   })
 
   socket.on('disconnect', () => {

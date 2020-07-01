@@ -1,5 +1,7 @@
 <template>
   <div id="app">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+
     <StartView v-if="state.view == 'start'" />
     <PlayView v-else-if="state.view == 'play'" />
     <!-- <img alt="Vue logo" src="./assets/logo.png"> -->
@@ -74,6 +76,54 @@ body::before {
 }
 
 
+.form-row {
+  margin: 1rem;
+  display: flex;
+  align-items: center;
+}
+
+form input {
+  font-size: 1.25em;
+  padding: .25em;
+}
+
+input[type="number"] {
+  text-align: right;
+  width: 3em;
+}
+
+input[type="range"] {
+  padding: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  height: .4em;
+  outline: none;
+  border-radius: 1em;
+  background: #0bf;
+  flex-grow: 1;
+  margin: 0 1em;
+}
+::-webkit-slider-thumb {
+  -webkit-appearance: none; 
+  appearance: none;
+  width: 1em;
+  height: 1em;
+  background: #fff;
+  box-shadow: 0 0 2px #000;
+  border-radius: 2em;
+  cursor: pointer;
+}
+.slider::-moz-range-thumb {
+  -webkit-appearance: none; 
+  appearance: none;
+  width: 1em;
+  height: 1em;
+  background: #fff;
+  box-shadow: 0 0 2px #000;
+  border-radius: 2em;
+  cursor: pointer;
+}
+
 
 button {
   border: none;
@@ -83,7 +133,10 @@ button {
   background-color: #0bf;
   margin: .5em;
 }
-
+button:disabled {
+  pointer-events: none;
+  opacity: .5;
+}
 .ui-pressable {
   cursor: pointer;
   outline: none;
