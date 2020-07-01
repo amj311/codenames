@@ -15,7 +15,8 @@ export default {
   methods: {
     startGame() {
       axios.get('http://localhost:3000/api/newroom').then( res=> {
-        this.$store.commit('setupSocket', res.data.rid)
+        this.$store.commit('setupSocket', res.data.rid);
+        this.$store.commit('setupHost');
       })
     },
     joinGame() {

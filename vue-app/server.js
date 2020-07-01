@@ -52,7 +52,7 @@ app.get('/api/rooms/:id', (req,res) => {
 })
 app.get('/api/newroom', (req,res) => {
   let newRoomId = newRoom();
-  console.log(newRoomId)
+  console.log("Created new room: "+newRoomId)
   res.json({ok: true, rid: newRoomId})
 })
 
@@ -87,5 +87,9 @@ socketio.on('connection', (socket) => {
       console.log('Found requested room '+roomMatch)			
       socket.join(roomMatch)
     }
+  })
+
+  socket.on('disconnect', () => {
+    console.log("Lost socket: "+socket.id)
   })
 })
