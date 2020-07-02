@@ -6,7 +6,7 @@
         <img id="modalImg" class="ui-raised" v-if="state.modal.img" :src="state.modal.img.path" :style="{width: state.modal.img.w, height: state.modal.img.h}" />
         <div id="modalMsg">{{state.modal.msg}}</div>
         <form id="turnHintForm" v-if="state.modal.form == 'turnHint'" @submit.prevent="modal_on('OK')">
-          <div class="form-row"><input v-model="turnHint" type="text" placeholder="Hint" ref="hintInput" /><input type="number" min="1" v-model="turnGuesses" /></div>
+          <div class="form-row" style="font-size:1.4em"><input v-model="turnHint" type="text" placeholder="Hint" ref="hintInput" /><input type="number" min="1" v-model="turnGuesses" /></div>
           <input type="submit" hidden />
         </form>
         <div id="modalButtons">

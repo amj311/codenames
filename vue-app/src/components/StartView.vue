@@ -6,7 +6,7 @@
       <button @click="openMenu('join')" class="ui-raised ui-pressable ui-shiny">Join a Game</button>
     </div>
     <div id="menus">
-      <div id="menuWrpper">
+      <div id="menuWrpper" class="ui-block">
         <div id="topBar">
           <div id="closeMenu" @click="closeMenu"><i class="material-icons">arrow_back</i></div>
           <div style="width: 300%;">{{activeMenu == 'new' ? 'Start A New Game' : 'Join A Game'}}</div>
@@ -25,13 +25,13 @@
             </label>
         
             <input type="radio" id="remote" v-model="newGameMode"  value="remote" hidden>
-            <label
+            <label disabled
               for="remote"
               class="ui-shiny ui-raised"
               :class="{'ui-pressable': newGameMode != 'remote'}"
             >
-              <i class="material-icons">phonelink_ring</i><i class="material-icons" style="transform: rotateY(180deg)">phonelink_ring</i><br>
-              Remote Mode
+              <div style="white-space:nowrap"><i class="material-icons">phonelink_ring</i><i class="material-icons" style="transform: rotateY(180deg)">phonelink_ring</i></div>
+              Coming Soon
             </label>
           </div>
           <!-- <div id="numCards" class="form-row">
@@ -43,8 +43,8 @@
         </form>
         <form v-else-if="activeMenu == 'join'" @submit.prevent="joinGame" id="joinMenu">
           <div class="form-row">
-            <input type="text" ref="roomToJoin" v-model="roomToJoin" placeholder="Enter room code" style="text-transform: uppercase" maxlength="6">
-            <button role="submit" :disabled="roomToJoin.length < 6" class="ui-pressable ui-shiny ui-raised">GO!</button>
+            <input type="text" ref="roomToJoin" v-model="roomToJoin" placeholder="Enter room code" style="text-transform: uppercase; font-size: 1.4em" maxlength="5">
+            <button role="submit" :disabled="roomToJoin.length < 5" class="ui-pressable ui-shiny ui-raised">GO!</button>
           </div>
         </form>
       </div>
@@ -64,14 +64,13 @@ export default {
     showMenu: false,
     activeMenu: 'new',
     newGameMode: 'party',
-    newGameSqrFactor: 5,
     roomToJoin: '',
   })},
   methods: {
     openMenu(menu) {
       this.showMenu = true;
       this.activeMenu = menu;
-      if (menu == "join") this.$nextTick( () => this.$refs.roomToJoin.focus() )
+      if (menu == "join") setTimeout( () => this.$refs.roomToJoin.focus(), 300 )
     },
     closeMenu() {
       this.showMenu = false;
@@ -82,7 +81,10 @@ export default {
       })
     },
     joinGame() {
-      this.$store.commit('goToView', 'room')
+      axios.get('http://localhost:3000/api/rooms/'+this.roomToJoin.toLowercase()).then( res=> {
+        // this.$store.dispatch('setupGameRoom', {id: res.data.rid, mode: this.newGameMode});
+        console.log(res)
+      })
     }
   }
 }
@@ -90,25 +92,25 @@ export default {
 
 <style scoped>
 #slideWrapper {
-  width: 100%;
+  width: calc(100vw - 2rem);;
   overflow: hidden;
 }
 #slideContainer {
   top: 0;
   left: 0%;
   position: relative;
-  width: 250vw;
+  width: 250%;
   height: 100%;
   display: flex;
   justify-content: space-between;
   transition: 200ms ease-out;
 }
 #slideContainer.slid {
-  left: -150vw;
+  left: -150%;
 }
 #slideContainer > div {
-  width: 100vw;
-  padding: 1rem;
+  padding: 5px;
+  width: calc(100vw - 2rem);
   box-sizing: border-box;
   display: flex;
   align-items: center;
@@ -118,12 +120,7 @@ export default {
 div#menuWrpper {
   display: flex;
   flex-direction: column;
-  padding: 1rem;
-  background: #fff;
-  width: 100%;
-  max-width: 30rem;
-  margin: 0 auto;
-  border-radius: 10px;
+  max-width: 35rem;
 }
 
 div#topBar {
@@ -146,15 +143,16 @@ div#closeMenu {
 }
 
 
-#mode.form-row {
+.form-row {
   justify-content: center;
+  flex-wrap: wrap;
 }
 #mode.form-row label {
   border-radius: 10px;
   background-color: #bbb;
   color: #fff;
   padding: 1em;
-  margin: 0 .5em;
+  margin: .5em;
   font-size: 1em;
   width: 7em;
 }

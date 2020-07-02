@@ -58,13 +58,17 @@ export default {
   height: 100%;
   box-sizing: border-box;
   border-radius: 10px;
-  padding: 1em;
+  padding: .25em;
   display: flex;
   align-items: center;
   justify-content: center;
   user-select: none;
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
+}
+.card-face > div {
+  width: 100%;
+  word-wrap: break-word;
 }
 
 .back {

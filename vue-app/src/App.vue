@@ -63,31 +63,56 @@ body::before {
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
   color: #111;
-}
-
-
-#app {
   position: relative;
   top: 0;
   left: 0;
   width: 100%;
   min-height: 100vh;
+  padding: 1rem;
+  box-sizing: border-box;
   display: flex;
   align-content: center;
   align-items: center;
   justify-content: center;
 }
 
+.ui-view-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-width: 65rem;
+  display: flex;
+  align-content: center;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+.ui-block {
+  padding: 1rem;
+  background: #fff;
+  width: 100%;
+  max-width: 65rem;
+  box-sizing: border-box;
+  margin: .25em;
+  border-radius: 10px;
+}
+.ui-block > h3:first-of-type {
+  margin: 0 0 .5em;
+}
 
 .form-row {
   margin: 1rem;
   display: flex;
   align-items: center;
+  justify-content: space-between;
 }
 
-form input {
-  font-size: 1.25em;
+input {
+  font-size: .80em;
   padding: .25em;
+  margin: 0 .25em;
+  max-width: 100%;
+  flex-grow: 1;
 }
 
 input[type="number"] {
@@ -126,6 +151,9 @@ input[type="range"] {
   border-radius: 2em;
   cursor: pointer;
 }
+.form-row input[type="range"] {
+  width: 100%;
+}
 
 
 button {
@@ -136,7 +164,13 @@ button {
   background-color: #0bf;
   margin: .5em;
 }
-button:disabled {
+button.inline {
+  display: inline-block;
+  margin: 0;
+  padding: .8em 1em;
+  font-size: .75em;
+}
+[disabled="disabled"] {
   pointer-events: none;
   opacity: .5;
 }
@@ -144,7 +178,7 @@ button:disabled {
   cursor: pointer;
   outline: none;
 }
-.ui-raised {
+.ui-raised, .ui-block {
   box-shadow: 1px 1px 3px #0005;
 }
 img.ui-raised {
@@ -181,4 +215,10 @@ img.ui-raised {
 .ui-shiny.ui-pressable:hover::after, .ui-shiny.ui-pressable:focus::after, .ui-shiny.ui-shift-shiny::after {
   background-position: 60% 50%;
 }
+
+@keyframes pulse {
+  from {transform: scale(1);}
+  to {transform: scale(1.2);}
+}
+
 </style>

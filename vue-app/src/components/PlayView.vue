@@ -1,6 +1,6 @@
 <template>
-  <div>
-    <Board msg="Codenames"/>
+  <div class="ui-view-wrapper">
+    <Board msg="Codenames" style="width: 100%" />
   </div>
 </template>
 

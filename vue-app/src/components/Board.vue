@@ -1,14 +1,18 @@
 <template>
-  <div class="hello" style="max-width: 60rem; margin: 0 auto;">
-    <div id="scoreboard" v-if="gameState.teamOfTurn && !gameState.gameOver">
-      <div id="activeTeam" :style="{color: gameState.teamOfTurn.color}">Go {{gameState.teamOfTurn.name}}!</div>
-      <div id="activeHint">{{gameState.roundStatus =='guessing' ? `"${gameState.turnHint}"` : "Waiting for hint..."}}</div>
-      <div id="guessCounter" v-if="gameState.roundStatus == 'guessing'">Attempts: {{Math.max(0, gameState.turnGuesses-gameState.usedGuesses)}}<span class="extraHint"> + 1</span></div>
+  <div>
+    <div id="topBar">
+      <div id="scoreboard" v-if="gameState.teamOfTurn && gameState.roundStatus != 'gameOver'">
+        <div id="activeTeam" :style="{color: gameState.teamOfTurn.color}">Go {{gameState.teamOfTurn.name}}!</div>
+        <div id="activeHint">{{gameState.roundStatus =='guessing' ? `"${gameState.turnHint}"` : "Waiting for hint..."}}</div>
+        <div id="guessCounter" v-if="gameState.roundStatus == 'guessing'">Attempts: {{Math.max(0, gameState.turnGuesses-gameState.usedGuesses)}}<span class="extraHint"> + 1</span></div>
+      </div>
+      <div id="winnerMsg" v-else-if="gameState.roundStatus == 'gameOver'"><div class="ui-raised ui-shiny" :style="`text-align: center; margin: 0 auto; background-color: ${gameState.winner? gameState.winner.color : gameState.teams.bystander.color}; color: #fff; padding: 0 .4em; border-radius: 5px;`">{{gameState.winner? gameState.winner.name+" Wins!" : "DRAW!"}}</div></div>
+      <div v-else>Ready!</div>
     </div>
-    <div id="winnerMsg" v-if="gameState.winner && gameState.gameOver"><div :style="`text-align: center; margin: 0 auto; background-color: ${gameState.winner.color}; color: #fff; padding: 0 .4em; border-radius: 5px;`">{{gameState.winner.name}} Wins!</div></div>
-    <div v-if="gameState.cards.length > 0" class="cards-table" :style="{'pointer-events': (gameState.roundStatus == 'guessing' || gameState.gameOver) ? 'all' : 'none'}">
-      <div v-for="card in gameState.cards" :key="card.word" class="card-cell">
-        <Card :freeRotate="gameState.gameOver" :card="card" @tryFlip="handleCardFlip" />
+
+    <div v-if="gameState.cards.length > 0" class="cards-table" :style="{'pointer-events': (gameState.roundStatus == 'guessing' || gameState.roundStatus == 'gameOver') ? 'all' : 'none'}">
+      <div v-for="card in gameState.cards" :key="card.word" class="card-cell" :style="{width: cardWidth}">
+        <Card :freeRotate="gameState.roundStatus == 'gameOver'" :card="card" @tryFlip="handleCardFlip" />
       </div>
     </div>
 
@@ -20,10 +24,10 @@
       <div>
         <button @click="giveHint" v-if="gameState.roundStatus == 'givingHint'" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': gameState.teamOfTurn.color}">GIVE HINT</button>
         <button @click="advanceTurn" v-if="gameState.roundStatus == 'guessing'" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': gameState.teams.bystander.color}">END TURN</button>
-        <button @click="setNewGame" v-if="gameState.gameOver" class="ui-raised ui-pressable ui-shiny">PLAY AGAIN</button>
+        <button @click="$store.commit('goToView','room')" v-if="gameState.roundStatus == 'gameOver'" class="ui-raised ui-pressable ui-shiny">PLAY AGAIN</button>
       </div>
       <div style="display: flex; justify-content: flex-end;">
-        <button @click="promptEndGame" v-if="!gameState.gameOver" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': '#888'}">END GAME</button>
+        <button @click="promptEndGame" v-if="gameState.roundStatus != 'gameOver'" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': '#888'}">END GAME</button>
       </div>
     </div>
 
@@ -61,10 +65,13 @@ export default {
     this.gameState.teams.teamTwo.img = this.ninjasImgs.red;
     this.gameState.teams.bystander.img = this.ninjasImgs.yellow;
 
+    console.log('Setting new Game')
+
     this.setNewGame();
   },
 
   computed: {
+    cardWidth() { return Math.floor(100/this.gameState.layoutSqrFactor)+'%' }
   },
 
   methods: {
@@ -82,12 +89,13 @@ export default {
     },
 
     endGame() {
-      this.resetBoard();
-      this.$store.commit('goToView','room');     
+      // this.resetBoard();
+      // this.$store.commit('goToView','room');  
+      this.$store.dispatch('updateGameState',{roundStatus: 'gameOver'});  
     },
     promptEndGame() {
       this.$store.dispatch('openModal', {
-        msg: "Would you like to end the game?",
+        msg: "Are you sure you want to end this game?",
         onOK: () => this.endGame(),
         onNO: () => {return},
         onEX: () => {return},
@@ -110,13 +118,13 @@ export default {
     generateNewCards() {
       this.$store.dispatch('generateNewCards');
 
-      this.printSecretKey();
+      // this.printSecretKey();
     },
 
     printSecretKey() {
       console.group('cards')
       let cards = this.state.game.cards;
-      for (let i = 0; i < cards.length; i+=5) {
+      for (let i = 0; i < cards.length; i+=this.gameState.layoutSqrFactor) {
         console.log(`%c ${cards[i].word[0]} %c ${cards[i+1].word[0]} %c ${cards[i+2].word[0]} %c ${cards[i+3].word[0]} %c ${cards[i+4].word[0]} `, `color: #777; background-color: ${cards[i].color}`, `color: #777; background-color: ${cards[i+1].color}`, `color: #777; background-color: ${cards[i+2].color}`, `color: #777; background-color: ${cards[i+3].color}`, `color: #777; background-color: ${cards[i+4].color}`);
       }
       console.groupEnd();
@@ -130,7 +138,7 @@ export default {
     },
 
     handleCardFlip(e) {
-      if(this.gameState.roundStatus == "guessing" && !this.gameState.gameOver) {
+      if(this.gameState.roundStatus == "guessing" && this.gameState.roundStatus != 'gameOver') {
         e.card.team.points++;
         this.$store.commit('useGuess');
         e.card.flipped = true;
@@ -139,7 +147,9 @@ export default {
         else if (e.card.team == this.gameState.teams.assassin) this.animateAssassin(e.event);
         else this.animateBadFlip(event)
 
-        if (e.card.team.points == e.card.team.qty && e.card.team != this.gameState.teams.bystander) {
+        if (
+          (e.card.team == this.gameState.teams.assassin || e.card.team.points == e.card.team.qty) &&
+          e.card.team != this.gameState.teams.bystander) {
           this.pausePlay();
           
           this.$store.dispatch('updateGameState', {
@@ -154,7 +164,7 @@ export default {
             this.$store.dispatch('openModal', {
               msg: context.gameState.winner.name + " wins!",
               img: {path: e.card.team.img, w:'15em', h:'15em'},
-              onEX() { context.gameState.gameOver = true; },
+              onEX() { context.endGame(); },
               timeout: 3000,
             });
           }
@@ -247,24 +257,25 @@ h3 {
 }
 .card-cell {
   box-sizing: border-box;
-  min-width: 20%;
-  max-width: 20%;
-  padding: .4em;
+  padding: .2em;
+  flex-grow: 1;
 }
 
 
 
 
+div#topBar {
+  font-weight: bold;
+  font-size: 1.75rem;
+  padding: .4em;
+  text-align: center;
+  width: 100%;
+  box-sizing: border-box;
+}
 
 div#scoreboard, div#winnerMsg {
     display: flex;
     justify-content: space-between;
-    font-weight: bold;
-    font-size: 1.75rem;
-    padding: .4em;
-    text-align: center;
-    width: 100%;
-    box-sizing: border-box;
 }
 
 span.extraHint {

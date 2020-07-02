@@ -25,7 +25,17 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'dist')));
 
 
-
+function randomString(length) {
+  let string = "";
+  while (string.length < length) {
+    let char;
+    do {
+      char = String.fromCharCode(97+Math.floor(Math.random()*26))
+    } while ('aeiou'.lastIndexOf(char) >= 0) 
+    string += char;
+  }
+  return string;
+}
 
 // ROOMS
 let rooms = ['test'];
@@ -33,7 +43,7 @@ function newRoom() {
   // There is currently no function for removing rooms after they are created!
   let newRoomId;
   do {
-    newRoomId = crypto.randomBytes(3).toString('hex');
+    newRoomId = randomString(5);
   } while ( rooms.filter( r => r.rid === newRoomId ).length > 0 )
   rooms.push(newRoomId)
   return newRoomId;

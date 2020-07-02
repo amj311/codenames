@@ -20,6 +20,7 @@ export default new Vuex.Store({
       teams: {
         teamOne: { qty: 9, color: "#0bf", name: "Blue", deck: [], points: 0, img: null },
         teamTwo: { qty: 9, color: "#f22", name: "Red", deck: [], points: 0, img: null },
+        teamThree: { qty: 0, color: "#0f2", name: "Green", deck: [], points: 0, img: null },
         bystander: { qty: 6, color: "#f4d96a", name: "Bystander", deck: [], points: 0, img: null },
         assassin: { qty: 1, color: "#2c3e50", name: "Assassin", deck: [], points: 0, img: null },
       },
@@ -27,7 +28,6 @@ export default new Vuex.Store({
       teamOfTurn: null,
       canPlay: false,
       roundStatus: '',
-      gameOver: false,
       winner: null,
       turnHint: "",
       turnGuesses: 1,
@@ -70,6 +70,10 @@ export default new Vuex.Store({
         else console.error("state."+options.portion+" has no property " + key)
       }
     },
+    setTeamQty(state, props:{team: string, qty:number}) {
+      state.game.teams[props.team].qty = Number(props.qty);
+      console.log(props.team+" qty is now: "+state.game.teams[props.team].qty)
+    },
     resetRound(state) {
       state.game.turnHint = "";
       state.game.turnGuesses = 1;
@@ -79,7 +83,6 @@ export default new Vuex.Store({
       state.game.teamOfTurn = null;
       state.game.canPlay = false;
       state.game.roundStatus = '';
-      state.game.gameOver = false;
       state.game.winner = null;
       state.game.turnHint = "";
       state.game.turnGuesses = 1;
@@ -192,11 +195,17 @@ export default new Vuex.Store({
       context.state.modal.onOK = context.state.modal.onNO = context.state.modal.onEX = context.state.modal.img = context.state.modal.form = null;
       window.clearTimeout(context.state.modal.closeTimeout);
     },
+
+
+    
     generateNewCards(context) {
       context.commit('clearBoard');
       let openCardIdxs = [];
       let usedWordIdxs = [];
       let numCards: number = context.state.game.layoutSqrFactor ** 2;
+      let teams = Object.values(context.state.game.teams);
+      console.log(numCards)
+      console.log(context.state.game.teams)
       for (let i = 0; i < numCards; i++) openCardIdxs.push(i);
 
       do {
@@ -210,13 +219,12 @@ export default new Vuex.Store({
         } while (usedWordIdxs.lastIndexOf(wordIdx) != -1);
         usedWordIdxs.push(wordIdx);
 
-        let teams = Object.entries(context.state.game.teams);
         let team: any;
-        let teamCap = 0;
+        let teamCap: number = 0;
         let teamIdx = 0;
         do {
-          team = teams[teamIdx][1];
-          teamCap += team.qty;
+          team = teams[teamIdx];
+          teamCap = Number(teamCap) + Number(team.qty);
           teamIdx++;
         } while (teamCap <= randIdx)
 
