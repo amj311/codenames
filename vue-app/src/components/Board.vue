@@ -256,9 +256,9 @@ h3 {
   flex-wrap: wrap;
 }
 .card-cell {
-  box-sizing: border-box;
-  padding: .2em;
   flex-grow: 1;
+  position: relative;
+  padding-top: 10%;
 }
 
 
@@ -274,12 +274,12 @@ div#topBar {
 }
 
 div#scoreboard, div#winnerMsg {
-    display: flex;
-    justify-content: space-between;
+  display: flex;
+  justify-content: space-between;
 }
 
 span.extraHint {
-    color: #aaa;
+  color: #aaa;
 }
 
 

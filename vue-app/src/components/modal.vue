@@ -5,10 +5,16 @@
       <div id="modalContent">
         <img id="modalImg" class="ui-raised" v-if="state.modal.img" :src="state.modal.img.path" :style="{width: state.modal.img.w, height: state.modal.img.h}" />
         <div id="modalMsg">{{state.modal.msg}}</div>
+        
         <form id="turnHintForm" v-if="state.modal.form == 'turnHint'" @submit.prevent="modal_on('OK')">
-          <div class="form-row" style="font-size:1.4em"><input v-model="turnHint" type="text" placeholder="Hint" ref="hintInput" /><input type="number" min="1" v-model="turnGuesses" /></div>
+          <div class="form-row" style="font-size:1.4em"><input v-model="turnHint" type="text" placeholder="Hint" ref="firstInput" /><input type="number" min="1" v-model="turnGuesses" /></div>
           <input type="submit" hidden />
         </form>
+        <form id="nicknameForm" v-if="state.modal.form == 'nickname'" @submit.prevent="modal_on('OK')">
+          <div class="form-row" style="font-size:1.4em"><input v-model="nickname" type="text" placeholder="Nickname" ref="firstInput" /></div>
+          <input type="submit" hidden />
+        </form>
+        
         <div id="modalButtons">
           <button id="modalOK" v-if="state.modal.onOK" @click="modal_on('OK')" class="ui-raised ui-shiny ui-pressable">OK</button>
           <button id="modalNo" v-if="state.modal.onNO" @click="modal_on('NO')" class="ui-raised ui-shiny ui-pressable" style="background-color: #888">Cancel</button>
@@ -48,6 +54,11 @@ export default {
           'newHint',
           {turnHint: this.turnHint, turnGuesses: value}
         )
+      }
+    },
+    nickname: {
+      get() { return this.$store.state.user.nickname },
+      set(value) { this.$store.dispatch('updateUserState',{nickname: value })
       }
     }
   },

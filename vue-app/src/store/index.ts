@@ -6,6 +6,7 @@ Vue.use(Vuex)
 
 export default new Vuex.Store({
   state: {
+    socket: null,
     view: 'start',
     wordSet: [],
     room: {
@@ -13,16 +14,17 @@ export default new Vuex.Store({
       id: null,
       players: []
     },
+    
     game: {
       layoutSqrFactor: 5,
       cards: [],
 
       teams: {
-        teamOne: { qty: 9, color: "#0bf", name: "Blue", deck: [], points: 0, img: null },
-        teamTwo: { qty: 9, color: "#f22", name: "Red", deck: [], points: 0, img: null },
-        teamThree: { qty: 0, color: "#0f2", name: "Green", deck: [], points: 0, img: null },
-        bystander: { qty: 6, color: "#f4d96a", name: "Bystander", deck: [], points: 0, img: null },
-        assassin: { qty: 1, color: "#2c3e50", name: "Assassin", deck: [], points: 0, img: null },
+        teamOne: { qty: 9, selectable: true, color: "#0bf", name: "Blue", deck: [], points: 0, img: require('@/assets/ninjas/blue.png'), members: [] },
+        teamTwo: { qty: 9, selectable: true, color: "#f22", name: "Red", deck: [], points: 0, img: require('@/assets/ninjas/red.png'), members: [] },
+        teamThree: { qty: 0, selectable: false, color: "#0f2", name: "Green", deck: [], points: 0, img: require('@/assets/ninjas/green.png'), members: [] },
+        bystander: { qty: 6, selectable: true, color: "#f4d96a", name: "Bystander", deck: [], points: 0, img: require('@/assets/ninjas/yellow.png'), members: [] },
+        assassin: { qty: 1, color: "#2c3e50", name: "Assassin", deck: [], points: 0, img: require('@/assets/ninjas/black.png') },
       },
 
       teamOfTurn: null,
@@ -33,10 +35,13 @@ export default new Vuex.Store({
       turnGuesses: 1,
       usedGuesses: 0,
     },
+
     user: {
-      socket: null,
-      role: null,
-      team: null,
+      isHost: false,
+      isPlayer: false,
+      isCaptain: false,
+      teamCode: 'bystander',
+      nickname: '',
     },
 
     ninjasImgs: {
@@ -61,14 +66,17 @@ export default new Vuex.Store({
     goToView(state: any, view:string) {
       state.view = view;
     },
-    updateStatePortion(state, options:{portion:string, props:any}) {
-      let stateKeys = Object.keys(state[options.portion]);
-      if (!state[options.portion]) return console.log('State has no such member: '+options.portion)
+    updateStateObject(state, options:{object:string, props:any}) {
+      let stateKeys = Object.keys(state[options.object]);
+      if (!state[options.object]) return console.log('State has no such member: '+options.object)
 
       for (let key of Object.keys(options.props)) {
-        if (stateKeys.lastIndexOf(key) >= 0) state[options.portion][key] = options.props[key];
-        else console.error("state."+options.portion+" has no property " + key)
+        if (stateKeys.lastIndexOf(key) >= 0) state[options.object][key] = options.props[key];
+        else console.error("state."+options.object+" has no property " + key)
       }
+    },
+    updateTeamMembers(state, props:{teamCode:string,members:any}) {
+      state.game.teams[props.teamCode].members = props.members;
     },
     setTeamQty(state, props:{team: string, qty:number}) {
       state.game.teams[props.team].qty = Number(props.qty);
@@ -125,54 +133,76 @@ export default new Vuex.Store({
 
   actions: {
     updateGameState(context, props) {
-      context.commit('updateStatePortion', {portion:'game',props})
+      context.commit('updateStateObject', {object:'game',props})
     },
     updateRoomState(context, props) {
-      context.commit('updateStatePortion', {portion:'room',props})
+      context.commit('updateStateObject', {object:'room',props})
     },
     updateUserState(context, props) {
-      context.commit('updateStatePortion', {portion:'user',props})
+      context.commit('updateStateObject', {object:'user',props})
     },
 
 
 
     setupSocket(context:any, options:{rid:string, cb: any}) {
       let state = context.state;
-      if (!state.user.socket) state.user.socket = socketio('localhost:3000');
-      let socket = state.user.socket;
-      socket.on('connect', () => console.log('connected'))
-
-      socket.emit('joinRoom',options.rid, () => {
-        state.room.id = options.rid;
-        console.log("I'm connected to room: "+options.rid)
-        options.cb();
-      })
+      if (!state.socket) state.socket = socketio('localhost:3000');
+      let socket = state.socket;
+      console.log('joinRoom '+options.rid)
 
       socket.on('msg', (msg: string) => console.log(msg));
       socket.on('updateGame', (props:any)=> {
         context.dispatch('updateGameState', props)
       })
       socket.on('updateRoom', (props:any)=> {
+        console.log('updating room: ',props)
         context.dispatch('updateRoomState', props)
       })
-      socket.on('updateUser', (props:any)=> {
-        context.dispatch('updateUserState', props)
+      socket.on('updatePlayers', (props:any)=> {
+        context.dispatch('updateRoomState', {players: props})
+        for (let teamCode of Object.keys(context.state.game.teams)) {
+          let members = this.state.room.players.filter( (p:any) => (p.teamCode == teamCode) || (teamCode == 'bystander' && !p.teamCode));
+          context.commit('updateTeamMembers', { teamCode, members })
+        }
+      })
+
+
+      
+      socket.emit('joinRoom',options.rid, () => {
+        state.room.id = options.rid;
+        console.log("I'm connected to room: "+options.rid)
+        options.cb();
       })
 
     },
     setupGameRoom(context, props: {id:string, mode: string}) {
+      context.state.user.isHost = true;
+      context.state.user.isPlayer = (props.mode != 'party');
+      console.log('setupGameRoom '+props.id)
+
       context.dispatch('setupSocket', {rid: props.id, cb: () => {
         context.dispatch('updateRoomState', props)
         context.commit('goToView', 'room')
-        console.log(context.state.view)
       }});
 
     },
+    joinGameRoom(context, rid:string) {
+      context.state.user.isHost = false;
+      context.state.user.isPlayer = true;
+      console.log('joinGameRoom '+rid)
+      context.dispatch('setupSocket', {rid, cb: () => {
+        context.dispatch('updateRoomState', rid)
+        context.commit('goToView', 'room')
+      }});
+    },
+    emitUserData(context) {
+      context.state.socket.emit('updateUserData', context.state.user)
+    },
     emitRoom(context) {
-      context.state.user.socket.emit('updateRoom', context.state.room)
+      context.state.socket.emit('updateRoom', context.state.room)
     },
     emitGame(context) {
-      context.state.user.socket.emit('updateGame', context.state.game)
+      context.state.socket.emit('updateGame', context.state.game)
     },
 
 

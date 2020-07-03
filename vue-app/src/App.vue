@@ -5,8 +5,6 @@
     <StartView v-if="state.view == 'start'" />
     <PlayView v-if="state.view == 'play'" />
     <RoomView v-if="state.view == 'room'" />
-    <!-- <img alt="Vue logo" src="./assets/logo.png"> -->
-    <!-- <Board msg="Codenames"/> -->
     <Modal />
 
   </div>
@@ -38,9 +36,13 @@ export default {
 </script>
 
 <style>
+:root {
+  font-size: 3vh;
+}
 body {
   background: #f5f5f5;
   margin: 0;
+  font-size: 1rem;
 }
 body::before {
   content: '';
@@ -80,7 +82,7 @@ body::before {
   position: relative;
   width: 100%;
   height: 100%;
-  max-width: 65rem;
+  max-width: 40rem;
   display: flex;
   align-content: center;
   align-items: center;
@@ -158,22 +160,37 @@ input[type="range"] {
 
 button {
   border: none;
-  padding: 1em 2em;
+  padding: .5em 1em;
   font-weight: bold;
   color: white;
   background-color: #0bf;
   margin: .5em;
+  display: inline-flex;
+  align-items: center;
+  font-size: 1em;
 }
 button.inline {
-  display: inline-block;
+  display: inline-flex;
   margin: 0;
   padding: .8em 1em;
   font-size: .75em;
 }
+
+i.material-icons {
+  font-size: inherit;
+}
+button i.material-icons {
+  margin: 0 .25em;
+  font-size: 1.25em;
+}
+
 [disabled="disabled"] {
   pointer-events: none;
   opacity: .5;
 }
+
+
+
 .ui-pressable {
   cursor: pointer;
   outline: none;
@@ -206,19 +223,48 @@ img.ui-raised {
   height: 100%;
   left: 0;
   top: 0;
-  background: linear-gradient(35deg, transparent 30%, rgba(255, 255, 255, 0.267) 35%, transparent 45%, transparent 52%, rgba(255, 255, 255, 0.267) 57%, transparent 73%);
-  background-position: 0% 50%;
+  background: linear-gradient(45deg, transparent 32%, rgba(255, 255, 255, 0.2) 40%, transparent 50%, transparent 52%, rgba(255, 255, 255, 0.25) 57%, transparent 69%);
+  background-position: 10% 50%;
   background-size: 300% 300%;
   transition: background-position 300ms;
 }
-
 .ui-shiny.ui-pressable:hover::after, .ui-shiny.ui-pressable:focus::after, .ui-shiny.ui-shift-shiny::after {
-  background-position: 60% 50%;
+  animation: shiny-background-hover 20000ms ease-out infinite;
+}
+.ui-shiny:not(:hover)::after {
+  animation: shiny-background-glimmer 20000ms ease-out infinite;
+}
+
+
+@keyframes shiny-background-glimmer {
+  0% { background-position: 10% 50% }
+  5% { background-position: 160% 50% }
+  100% { background-position: 160% 50% }
+}
+@keyframes shiny-background-hover {
+  0% { background-position: 10% 50% }
+  5% { background-position: 160% 50% }
+  100% { background-position: 160% 50% }
 }
 
 @keyframes pulse {
-  from {transform: scale(1);}
-  to {transform: scale(1.2);}
+  from {transform: scale(1) }
+  to {transform: scale(1.2) }
 }
 
+
+
+
+
+@media screen and (max-aspect-ratio: 1/1) {
+  :root {
+    font-size: 3vw;  /* cyan */
+  }
+}
+
+@media screen and (max-width: 400px) {
+  :root {
+    font-size: 15px;  /* cyan */
+  }
+}
 </style>

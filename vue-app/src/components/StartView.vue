@@ -34,11 +34,7 @@
               Coming Soon
             </label>
           </div>
-          <!-- <div id="numCards" class="form-row">
-            <label>Number of Cards</label>
-            <input type="range" name="numCards" v-model="newGameSqrFactor" min="3" max="6">
-            <label style="width:1em;">{{newGameSqrFactor**2}}</label>
-          </div> -->
+          
           <button role="submit" class="ui-pressable ui-shiny ui-raised">GO!</button>
         </form>
         <form v-else-if="activeMenu == 'join'" @submit.prevent="joinGame" id="joinMenu">
@@ -76,14 +72,15 @@ export default {
       this.showMenu = false;
     },
     startGame() {
-      axios.get('http://localhost:3000/api/newroom').then( res=> {
+      axios.get('http://localhost:3000/api/newroom/'+this.newGameMode).then( res=> {
         this.$store.dispatch('setupGameRoom', {id: res.data.rid, mode: this.newGameMode});
       })
     },
     joinGame() {
-      axios.get('http://localhost:3000/api/rooms/'+this.roomToJoin.toLowercase()).then( res=> {
+      axios.get('http://localhost:3000/api/rooms/'+this.roomToJoin.toLowerCase()).then( res=> {
         // this.$store.dispatch('setupGameRoom', {id: res.data.rid, mode: this.newGameMode});
-        console.log(res)
+        this.$store.dispatch('joinGameRoom', res.data.rid);
+        console.log(res.data.rid)
       })
     }
   }

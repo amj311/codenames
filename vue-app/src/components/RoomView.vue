@@ -1,58 +1,94 @@
 <template>
   <div id="setup" class="ui-view-wrapper">
+    <div id="roomInfo">
+      <div id="roomCode"><i class="material-icons">tap_and_play</i><span>Room Code:<span style="text-transform: uppercase"> {{state.room.id}}</span></span></div>
+      <span style="text-transform: capitalize">Mode: {{state.room.mode}}</span>
+    </div>
     
-    <h1 id="roomCode"><i class="material-icons">phonelink_ring</i><span>Room Code:<span style="text-transform: uppercase"> {{state.room.id}}</span></span></h1>
-    
-    <div id="settings">
-      <div id="teams" class="ui-block">
+    <div id="settings" v-if="state.user.isHost || state.mode == 'remote'">
+      <div id="teams" class="ui-block" v-if="state.user.isHost">
         <h3>Players</h3>
-        <div class="teamList">
-          <div class="playerCard" v-for="player in teamNeutral" :key="player.name">
-            <img :src="state.ninjasImgs.yellow">
-            <div>{{player.name}}</div>
-          </div>
-        </div>
-        <div class="teamList">
-          <div class="playerCard" v-for="player in teamOne" :key="player.name">
-            <img :src="state.ninjasImgs.blue">
-            <div>{{player.name}}</div>
-          </div>
-        </div>
-        <div class="teamList">
-          <div class="playerCard" v-for="player in teamTwo" :key="player.name">
-            <img :src="state.ninjasImgs.red">
-            <div>{{player.name}}</div>
+        <div id="teamLists">
+          <div class="teamList" v-for="team in state.game.teams" :key="team.name">
+            <div v-if="team.selectable">
+              <div class="playerCard ui-shiny" v-for="player in team.members" :key="player.nickname">
+                <img :src="team.img">
+                <div>{{player.nickname}}</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       <div id="boardSettings" class="ui-block">
-        <h3>Options</h3>
+        <h3>Board Preview</h3>
           <div id="boardPreview">
             <div v-for="card in previewCards" :key="card.idx" class="card-wrapper" :style="{width: cardWidth}">
               <div class="card ui-shiny ui-raised" :style="{backgroundColor: card.color}"></div>
             </div>
           </div>
-          <div id="totalCards" class="form-row">
-            <label>Cards</label>
-            <input type="range" name="numCards" v-model="newGameSqrFactor" min="3" max="6">
-            <label style="width:1em;">{{newGameSqrFactor**2}}</label>
-          </div>
-          <div id="teamCards" class="form-row">
-            <div>
-              <label>Team Cards</label>
-              <input type="number" v-model="numTeamCards" min="1" :max="maxCompTeamQty">
+          <form v-if="state.user.isHost">
+            <div id="totalCards" class="form-row">
+              <label>Cards</label>
+              <input type="range" name="numCards" v-model="newGameSqrFactor" min="3" max="6">
+              <label style="width:1em;">{{newGameSqrFactor**2}}</label>
             </div>
-            <div> 
-              <label>Assassins</label>
-              <input type="number" v-model="numAssassins" min="0" :max="3">
+            <div id="teamCards" class="form-row">
+              <div>
+                <label>Team Cards</label>
+                <input type="number" v-model="numTeamCards" min="1" :max="maxCompTeamQty">
+              </div>
+              <div> 
+                <label>Assassins</label>
+                <input type="number" v-model="numAssassins" min="0" :max="3">
+              </div>
             </div>
-          </div>
+          </form>
       </div>
     </div>
-    <div id="bottomBar" class="ui-block">
-      <button class="inline ui-pressable ui-shiny" style="background: transparent; color: inherit;" @click="$store.commit('goToView', 'start')">Close Room</button>
+
+    
+    <div id="teamSelection" class="ui-block" v-if="state.user.isPlayer">
+      <h3>Choose Your Team</h3>
+
+      <div class="form-row" id="teamSelect">
+        <div v-for="teamCode in playableTeamCodes" :key="teamCode">
+          <input type="radio" :id="teamCode" v-model="userTeamSelection" :value="teamCode" hidden>
+          <label
+            :for="teamCode"
+            class="ui-shiny ui-raised"
+            :class="{'ui-pressable': userTeamSelection != teamCode}"
+            :style="{'background-image': `url(${state.game.teams[teamCode].img})`}" width="50" />
+        </div>
+      </div>
+      <h3>
+        <span v-if="userTeamSelection == 'bystander'">Sitting this one out...</span>
+        <span v-else :style="{color: state.game.teams[userTeamSelection].color}">{{state.game.teams[userTeamSelection].name}} Team</span>
+      </h3>
+      <div class="teamList">
+        <div class="playerCard ui-shiny" style="font-weight:bold;">
+          <img :src="state.game.teams[userTeamSelection].img" class="ui-raised">
+          <div>{{state.user.nickname}}</div>
+        </div>
+        <div class="playerCard ui-shiny"
+          v-for="member in state.game.teams[userTeamSelection].members"
+          :key="member.nickname"
+          :style="{display: member.nickname == state.user.nickname ? 'none':''}"
+        >
+          <img :src="state.game.teams[userTeamSelection].img">
+          <div>{{member.nickname}}</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div id="bottomBar" class="ui-block" v-if="state.user.isHost">
+      <button class="inline ui-pressable ui-shiny" style="background: transparent; color: inherit;" @click="$store.commit('goToView', 'start')"><i class="material-icons">cancel</i>  Close Room</button>
       <button id="play" class="inline ui-pressable ui-shiny ui-raised" @click="$store.commit('goToView', 'play')">PLAY!</button>
+    </div>
+    <div id="bottomBar" class="ui-block" v-else>
+      <button class="inline ui-pressable ui-shiny" style="background: transparent; color: inherit;" @click="$store.commit('goToView', 'start')"><i class="material-icons">cancel</i>Leave Room</button>
+
     </div>
   </div>
 </template>
@@ -61,9 +97,7 @@
 
 export default {
   name: 'Room',
-  components: {
 
-  },
   data() {return({
     state: this.$store.state,
     newGameSqrFactor: null,
@@ -71,21 +105,24 @@ export default {
     numAssassins: null,
     numTeamCards: null,
     numNeutralCards: null,
-
-    testPlayers: [
-      {name:"Jack", teamCode: "one", isCaptain: true},
-      {name:"Jill", teamCode: 'two', isCaptain: true},
-      {name:"Jon"},
-      {name:"Jane"},
-      {name:"Arthur", teamCode: "one"},
-      {name:"Gennavie", teamCode: 'two'},
-      {name:"Fernando"},
-      {name:"Fernando"},
-      {name:"Felipe"}
-    ],
   })},
 
   created() {
+    if (!this.state.user.isHost || this.state.room.mode != 'party') {
+      let context = this;
+      this.$store.dispatch('openModal', {
+        msg: "Enter a nickname:",
+        form: 'nickname',
+        isValid: () => {return context.state.user.nickname},
+        onOK: () => {context.$store.dispatch('emitUserData')},
+        onNO: () => {context.$store.commit('goToView','start')},      
+      })
+    }
+    if (this.state.user.isHost) {
+      this.$store.dispatch('emitRoom');
+      this.$store.dispatch('emitGame');
+    }
+
     //just for testing
     this.$store.dispatch('updateRoomState', {players: this.testPlayers})
     this.newGameSqrFactor = this.state.game.layoutSqrFactor;
@@ -96,6 +133,9 @@ export default {
 
 
   watch: {
+    userTeamSelection() {
+      
+    },
     newGameSqrFactor() {
       this.calcNumNeutralCards()
       this.$store.dispatch('updateGameState', {layoutSqrFactor: this.newGameSqrFactor})
@@ -127,10 +167,13 @@ export default {
   },
 
   computed: {
-    teamOne() { return this.state.room.players.filter(p => p.teamCode == "one")},
-    teamTwo() { return this.state.room.players.filter(p => p.teamCode == "two")},
-    teamThree() { return this.state.room.players.filter(p => p.teamCode == "three")},
-    teamNeutral() { return this.state.room.players.filter(p => !p.teamCode)},
+    playableTeamCodes() {
+      let teams = [];
+      for (let [teamCode, team] of Object.entries(this.state.game.teams)) {
+        if (team.selectable) teams.push(teamCode)
+      }
+      return teams;
+    },
 
     maxCompTeamQty() {
       let availableCards = ((this.newGameSqrFactor**2) - this.numAssassins);
@@ -154,23 +197,51 @@ export default {
       return cards;
     },
 
-    cardWidth() { return Math.floor(100/this.newGameSqrFactor)+'%' }
+    cardWidth() { return Math.floor(100/this.newGameSqrFactor)+'%' },
+
+    
+    userTeamSelection: {
+      get() { return this.$store.state.user.teamCode },
+      set(value) {
+        this.$store.dispatch('updateUserState',{teamCode: value })
+        this.$store.dispatch('emitUserData')
+      }
+    }
   }
 }
 </script>
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <style scoped>
+#roomInfo {
+  margin: .5em 0;
+}
+
 #roomCode {
+  font-size: 1.7em;
   display: flex;
   align-items: center;  
   font-weight: bold;
   flex-wrap: wrap;
   justify-content: space-around;
 }
-#roomCode i {
-  font-size: inherit;
 
-}
+
+
 #settings {
   overflow-y: auto;
   display: flex;
@@ -188,13 +259,18 @@ export default {
 #teams {
   min-width: 16em;
 }
+
+div#teamLists {
+    display: flex;
+    flex-wrap: wrap;
+}
+
 .playerCard {
+  font-size: .8em;
   display: inline-block;
   text-align: center;
   padding: .5em;
-  /* outline: 1px solid; */
   width: min-content;
-  /* min-width: 3em; */
 }
 .playerCard img {
   width: 3em;
@@ -207,6 +283,7 @@ export default {
 
 #boardPreview {
   display: flex;
+  justify-content: space-between;
   flex-wrap: wrap;
   width: 100%;
   max-width: 15rem;
@@ -224,6 +301,39 @@ export default {
   content: '';
   display: block;
 }
+
+
+
+
+#teamSelect.form-row {
+  justify-content: center;
+  flex-wrap: wrap;
+}
+#teamSelect.form-row label {
+  display: block;
+  border-radius: 50%;
+  width: 5rem;
+  height: 5rem;
+  background-size: 110%;
+  background-position: center;
+  background-color: #bbb;
+  margin: .5rem;
+  transition: 200ms;
+}
+#teamSelect.form-row:hover label {
+  opacity: .8;
+}
+
+#teamSelect.form-row input:checked + label,#teamSelect.form-row label:hover {
+  opacity: 1;
+  transform: scale(1.1)
+}
+
+
+
+
+
+
 
 #bottomBar {
   font-size: 1.25em;

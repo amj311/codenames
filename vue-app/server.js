@@ -38,14 +38,18 @@ function randomString(length) {
 }
 
 // ROOMS
-let rooms = ['test'];
-function newRoom() {
+const RoomManager = require('./api_models/GameRoomManager.js')
+let rooms = [];
+
+function newRoom(mode) {
   // There is currently no function for removing rooms after they are created!
   let newRoomId;
   do {
     newRoomId = randomString(5);
   } while ( rooms.filter( r => r.rid === newRoomId ).length > 0 )
-  rooms.push(newRoomId)
+
+  rooms.push(new RoomManager(newRoomId, mode))
+
   return newRoomId;
 }
 
@@ -53,16 +57,17 @@ function newRoom() {
 
 // ROUTES
 app.get('/api/rooms/:id', (req,res) => {
-  let roomMatch = rooms.filter(rid => rid === req.params.id)[0]
+  let roomMatch = rooms.filter(r => r.id === req.params.id)[0]
 
   if (roomMatch) {
-    console.log('Found requested room '+roomMatch)			
-    res.json({ok: true, rid: roomMatch})
+    console.log('Found requested room '+roomMatch.id)			
+    res.json({ok: true, rid: roomMatch.id})
   }
   else res.json({ok: false})
 })
-app.get('/api/newroom', (req,res) => {
-  let newRoomId = newRoom();
+
+app.get('/api/newroom/:mode', (req,res) => {
+  let newRoomId = newRoom(req.params.mode);
   console.log("Created new room: "+newRoomId)
   res.json({ok: true, rid: newRoomId})
 })
@@ -89,14 +94,16 @@ app.use(function(err, req, res, next) {
 // SOCKETS
 socketio.on('connection', (socket) => {
   console.log("New socket connected: "+socket.id)
-  socket.emit('msg','Hi')
+  socket.emit('msg','Message from server: Hi!')
 
   socket.on('joinRoom', (roomId, cb) => {
-    let roomMatch = rooms.filter(rid => rid === roomId)[0]
+    console.log("requesting room id: "+roomId)
+
+    let roomMatch = rooms.filter(r => r.id === roomId)[0]
 
     if (roomMatch) {
-      console.log('Found requested room '+roomMatch)			
-      socket.join(roomMatch)
+      console.log('Found requested room '+roomMatch.id)			
+      roomMatch.addPlayer(socket, {})
       cb();
     }
     else console.log("Could not find room: "+roomId)
