@@ -151,7 +151,7 @@ export default new Vuex.Store({
       console.log('joinRoom '+options.rid)
 
       socket.on('msg', (msg: string) => console.log(msg));
-      socket.on('updateGame', (props:any)=> {
+      socket.on('updateGamePieces', (props:any)=> {
         context.dispatch('updateGameState', props)
       })
       socket.on('updateRoom', (props:any)=> {
@@ -201,8 +201,12 @@ export default new Vuex.Store({
     emitRoom(context) {
       context.state.socket.emit('updateRoom', context.state.room)
     },
-    emitGame(context) {
-      context.state.socket.emit('updateGame', context.state.game)
+    emitGamePieces(context, keys) {
+      let props:any = {};
+      for (let key in keys) {
+        props[key] = context.state.game[key];
+      }
+      context.state.socket.emit('updateGamePieces', props)
     },
 
 

@@ -15,10 +15,11 @@ class GameRoomManager {
         socket.join(this.id);
         socket.emit('updateRoom', this.getRoomSummary())
 
-        socket.on('updateGame', (newGameState) => {
-            console.log("New gameState for room "+this.id)
-            this.gameState = newGameState;
-            this.emitToAllConnections('updateGame', newGameState);
+        socket.on('updateGamePieces', (props) => {
+            for (let key of Object.keys(props)) {
+                this.gameState[key] = props[key];
+            }
+            this.emitToAllConnections('updateGamePieces', props);
         })
 
         socket.on('updateUserData', (newUserData) => {

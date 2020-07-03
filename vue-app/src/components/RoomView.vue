@@ -115,20 +115,22 @@ export default {
         form: 'nickname',
         isValid: () => {return context.state.user.nickname},
         onOK: () => {context.$store.dispatch('emitUserData')},
-        onNO: () => {context.$store.commit('goToView','start')},      
+        onNO: () => {context.$store.commit('goToView','start')},
       })
     }
     if (this.state.user.isHost) {
       this.$store.dispatch('emitRoom');
-      this.$store.dispatch('emitGame');
+      this.$store.dispatch('emitGamePieces', ['roundStatus']);
     }
 
     //just for testing
     this.$store.dispatch('updateRoomState', {players: this.testPlayers})
+
     this.newGameSqrFactor = this.state.game.layoutSqrFactor;
     this.numTeamCards = this.state.game.teams.teamOne.qty;
     this.numAssassins = this.state.game.teams.assassin.qty;
     this.calcNumNeutralCards();
+    console.log(this.newGameSqrFactor, this.numTeamCards, this.numNeutralCards)
   },
 
 
