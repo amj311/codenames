@@ -72,12 +72,12 @@ export default {
       this.showMenu = false;
     },
     startGame() {
-      axios.get('http://localhost:3000/api/newroom/'+this.newGameMode).then( res=> {
+      axios.get('/api/newroom/'+this.newGameMode).then( res=> {
         this.$store.dispatch('setupGameRoom', {id: res.data.rid, mode: this.newGameMode});
       })
     },
     joinGame() {
-      axios.get('http://localhost:3000/api/rooms/'+this.roomToJoin.toLowerCase()).then( res=> {
+      axios.get('/api/rooms/'+this.roomToJoin.toLowerCase()).then( res=> {
         // this.$store.dispatch('setupGameRoom', {id: res.data.rid, mode: this.newGameMode});
         this.$store.dispatch('joinGameRoom', res.data.rid);
         console.log(res.data.rid)

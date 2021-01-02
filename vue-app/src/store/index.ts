@@ -146,7 +146,7 @@ export default new Vuex.Store({
 
     setupSocket(context:any, options:{rid:string, cb: any}) {
       let state = context.state;
-      if (!state.socket) state.socket = socketio('localhost:3000');
+      if (!state.socket) state.socket = socketio('');
       let socket = state.socket;
       console.log('joinRoom '+options.rid)
 
