@@ -12,7 +12,8 @@ export default new Vuex.Store({
     room: {
       mode: null,
       id: null,
-      players: []
+      players: [],
+      codeMasters: [],
     },
     
     game: {
@@ -27,9 +28,10 @@ export default new Vuex.Store({
         assassin: { qty: 1, color: "#2c3e50", name: "Assassin", deck: [], points: 0, img: require('@/assets/ninjas/black.png') },
       },
 
+
       teamOfTurn: null,
       canPlay: false,
-      roundStatus: '',
+      roundStatus: 'room',
       winner: null,
       turnHint: "",
       turnGuesses: 1,
@@ -189,6 +191,7 @@ export default new Vuex.Store({
     joinGameRoom(context, rid:string) {
       context.state.user.isHost = false;
       context.state.user.isPlayer = true;
+      context.state.user.isCaptain = true;
       console.log('joinGameRoom '+rid)
       context.dispatch('setupSocket', {rid, cb: () => {
         context.dispatch('updateRoomState', rid)
@@ -203,9 +206,11 @@ export default new Vuex.Store({
     },
     emitGamePieces(context, keys) {
       let props:any = {};
-      for (let key in keys) {
+      keys.forEach((key:any) => {
         props[key] = context.state.game[key];
-      }
+      });
+      
+      console.log("emitting game pieces:", props)
       context.state.socket.emit('updateGamePieces', props)
     },
 
@@ -264,7 +269,7 @@ export default new Vuex.Store({
 
         let card = {word: context.state.wordSet[wordIdx], color: team.color, flipped: false, team };
         context.state.game.cards.push( card )
-        team.deck.push(card)
+        // team.deck.push(card)
 
       } while (openCardIdxs.length > 0);
     },

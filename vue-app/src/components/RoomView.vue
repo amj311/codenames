@@ -6,7 +6,7 @@
     </div>
     
     <div id="settings" v-if="state.user.isHost || state.mode == 'remote'">
-      <div id="teams" class="ui-block" v-if="state.user.isHost">
+      <!-- <div id="teams" class="ui-block" v-if="state.user.isHost">
         <h3>Players</h3>
         <div id="teamLists">
           <div class="teamList" v-for="team in state.game.teams" :key="team.name">
@@ -18,7 +18,7 @@
             </div>
           </div>
         </div>
-      </div>
+      </div> -->
 
       <div id="boardSettings" class="ui-block">
         <h3>Board Preview</h3>
@@ -49,8 +49,9 @@
 
     
     <div id="teamSelection" class="ui-block" v-if="state.user.isPlayer">
-      <h3>Choose Your Team</h3>
+      <h3>Wait for the game to start...</h3>
 
+      <!-- <h3>Choose Your Team</h3>
       <div class="form-row" id="teamSelect">
         <div v-for="teamCode in playableTeamCodes" :key="teamCode">
           <input type="radio" :id="teamCode" v-model="userTeamSelection" :value="teamCode" hidden>
@@ -78,17 +79,17 @@
           <img :src="state.game.teams[userTeamSelection].img">
           <div>{{member.nickname}}</div>
         </div>
-      </div>
+      </div> -->
 
     </div>
 
     <div id="bottomBar" class="ui-block" v-if="state.user.isHost">
       <button class="inline ui-pressable ui-shiny" style="background: transparent; color: inherit;" @click="$store.commit('goToView', 'start')"><i class="material-icons">cancel</i>  Close Room</button>
-      <button id="play" class="inline ui-pressable ui-shiny ui-raised" @click="$store.commit('goToView', 'play')">PLAY!</button>
+      <button id="play" v-if="codeMasters.length>0" class="inline ui-pressable ui-shiny ui-raised" @click="startGame">PLAY!</button>
+      <div v-else>Waiting for codemasters...</div>
     </div>
     <div id="bottomBar" class="ui-block" v-else>
       <button class="inline ui-pressable ui-shiny" style="background: transparent; color: inherit;" @click="$store.commit('goToView', 'start')"><i class="material-icons">cancel</i>Leave Room</button>
-
     </div>
   </div>
 </template>
@@ -108,16 +109,20 @@ export default {
   })},
 
   created() {
-    if (!this.state.user.isHost || this.state.room.mode != 'party') {
-      let context = this;
-      this.$store.dispatch('openModal', {
-        msg: "Enter a nickname:",
-        form: 'nickname',
-        isValid: () => {return context.state.user.nickname},
-        onOK: () => {context.$store.dispatch('emitUserData')},
-        onNO: () => {context.$store.commit('goToView','start')},
-      })
-    }
+    console.log(this.state.room.players)
+    this.$store.dispatch('emitUserData');
+
+    // FOR FULL REMOTE
+    // if (!this.state.user.isHost || this.state.room.mode != 'party') {
+    //   let context = this;
+    //   this.$store.dispatch('openModal', {
+    //     msg: "Enter a nickname:",
+    //     form: 'nickname',
+    //     isValid: () => {return context.state.user.nickname},
+    //     onOK: () => {context.$store.dispatch('emitUserData')},
+    //     onNO: () => {context.$store.commit('goToView','start')},
+    //   })
+    // }
     if (this.state.user.isHost) {
       this.$store.dispatch('emitRoom');
       this.$store.dispatch('emitGamePieces', ['roundStatus']);
@@ -165,6 +170,10 @@ export default {
       this.$store.commit('setTeamQty', {team: 'bystander', qty: numNeutral})
       this.numNeutralCards = numNeutral;
       return numNeutral;
+    },
+
+    startGame() {
+      this.$store.dispatch('updateGameState',{roundStatus: ''})
     }
   },
 
@@ -201,6 +210,10 @@ export default {
 
     cardWidth() { return Math.floor(100/this.newGameSqrFactor)+'%' },
 
+    codeMasters() {
+      if (!this.$store.state.room.players) return [];
+      return this.$store.state.room.players.filter(p=>p.isCaptain);
+    },
     
     userTeamSelection: {
       get() { return this.$store.state.user.teamCode },

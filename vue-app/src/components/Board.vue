@@ -3,7 +3,10 @@
     <div id="topBar">
       <div id="scoreboard" v-if="gameState.teamOfTurn && gameState.roundStatus != 'gameOver'">
         <div id="activeTeam" :style="{color: gameState.teamOfTurn.color}">Go {{gameState.teamOfTurn.name}}!</div>
-        <div id="activeHint">{{gameState.roundStatus =='guessing' ? `"${gameState.turnHint}"` : "Waiting for hint..."}}</div>
+        
+        <!-- FOR FULL REMOTE -->
+        <!-- <div id="activeHint">{{gameState.roundStatus =='guessing' ? `"${gameState.turnHint}"` : "Waiting for hint..."}}</div> -->
+        
         <div id="guessCounter" v-if="gameState.roundStatus == 'guessing'">Attempts: {{Math.max(0, gameState.turnGuesses-gameState.usedGuesses)}}<span class="extraHint"> + 1</span></div>
       </div>
       <div id="winnerMsg" v-else-if="gameState.roundStatus == 'gameOver'"><div class="ui-raised ui-shiny" :style="`text-align: center; margin: 0 auto; background-color: ${gameState.winner? gameState.winner.color : gameState.teams.bystander.color}; color: #fff; padding: 0 .4em; border-radius: 5px;`">{{gameState.winner? gameState.winner.name+" Wins!" : "DRAW!"}}</div></div>
@@ -22,9 +25,10 @@
       <div style="display: flex; justify-content: flex-start;">
       </div>
       <div>
-        <button @click="giveHint" v-if="gameState.roundStatus == 'givingHint'" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': gameState.teamOfTurn.color}">GIVE HINT</button>
+        <!-- FOR FULL REMOTE -->
+        <!-- <button @click="giveHint" v-if="gameState.roundStatus == 'givingHint'" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': gameState.teamOfTurn.color}">GIVE HINT</button> -->
         <button @click="advanceTurn" v-if="gameState.roundStatus == 'guessing'" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': gameState.teams.bystander.color}">END TURN</button>
-        <button @click="$store.commit('goToView','room')" v-if="gameState.roundStatus == 'gameOver'" class="ui-raised ui-pressable ui-shiny">PLAY AGAIN</button>
+        <button @click="exitBoard()" v-if="gameState.roundStatus == 'gameOver'" class="ui-raised ui-pressable ui-shiny">PLAY AGAIN</button>
       </div>
       <div style="display: flex; justify-content: flex-end;">
         <button @click="promptEndGame" v-if="gameState.roundStatus != 'gameOver'" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': '#888'}">END GAME</button>
@@ -45,7 +49,6 @@ import Card from './Card.vue'
 
 export default {
   name: 'Board',
-  props: ["msg"],
   components: {
     Card
   },
@@ -91,7 +94,12 @@ export default {
     endGame() {
       // this.resetBoard();
       // this.$store.commit('goToView','room');  
-      this.$store.dispatch('updateGameState',{roundStatus: 'gameOver'});  
+      this.$store.dispatch('updateGameState',{roundStatus: 'gameOver'});
+      this.emitBoard();
+    },
+    exitBoard(){
+      this.$store.dispatch('updateGameState',{roundStatus: 'room'})
+      this.emitBoard();
     },
     promptEndGame() {
       this.$store.dispatch('openModal', {
@@ -105,14 +113,24 @@ export default {
     setNewGame() {
       this.resetBoard();
       this.generateNewCards();
-      let context = this;
-      this.$nextTick( ()=> this.$store.dispatch('openModal', {
-        msg: "Are you ready to start?",
-        onOK() { 
-          context.$store.dispatch('closeModal');
-          setTimeout( context.advanceTurn, 0 );
-        },
-      }))
+      this.advanceTurn();
+      this.emitBoard();
+
+      // FOR FULL REMOTE
+      // let context = this;
+      // this.$nextTick( ()=> this.$store.dispatch('openModal', {
+      //   msg: "Are you ready to start?",
+      //   onOK() { 
+      //     context.$store.dispatch('closeModal');
+      //     setTimeout( context.advanceTurn, 0 );
+      //   },
+      // }))
+    },
+
+    emitBoard() {
+      console.log("emitting board")
+      let props = ["usedGuesses","turnGuesses","turnHint","winner","cards","teamOfTurn","canPlay","roundStatus"]
+      this.$store.dispatch('emitGamePieces', props);
     },
 
     generateNewCards() {
@@ -122,17 +140,17 @@ export default {
     },
 
     printSecretKey() {
-      console.group('Cards')
-      for (let team of Object.values(this.gameState.teams)) {
-        if (team.selectable || team == this.gameState.teams.assassin) {
-          let string = "";
-          for (let card of team.deck) {
-            string += card.word + ", ";
-          }
-          console.log(`%c ${string} `, `color: #fff; background-color: ${team.color}; padding: .5em; font-weight: bold; text-shadow: 1px 1px 1px #0005`); 
-        }
-      }
-      console.groupEnd();
+      // console.group('Cards')
+      // for (let team of Object.values(this.gameState.teams)) {
+      //   if (team.selectable || team == this.gameState.teams.assassin) {
+      //     let string = "";
+      //     for (let card of team.deck) {
+      //       string += card.word + ", ";
+      //     }
+      //     console.log(`%c ${string} `, `color: #fff; background-color: ${team.color}; padding: .5em; font-weight: bold; text-shadow: 1px 1px 1px #0005`); 
+      //   }
+      // }
+      // console.groupEnd();
     },
 
     pausePlay(){
@@ -182,6 +200,9 @@ export default {
             setTimeout(this.advanceTurn, 1000);
           }
         }
+
+        this.emitBoard();
+
       }
     },
 
@@ -191,13 +212,20 @@ export default {
       if (this.gameState.teamOfTurn == this.gameState.teams.teamOne) this.$store.dispatch('updateGameState', {teamOfTurn: this.gameState.teams.teamTwo});
       else this.$store.dispatch('updateGameState', {teamOfTurn: this.gameState.teams.teamOne});
       
-      this.$store.dispatch('updateGameState', {roundStatus: 'givingHint'});
+      // FOR PARTY
+      this.$store.dispatch('updateGameState', {
+        canPlay: true,
+        roundStatus: "guessing",
+      });
+
+      // FOR FULL REMOTE
+      // this.$store.dispatch('updateGameState', {roundStatus: 'givingHint'});
       
-      this.$store.dispatch('openModal', {
-        msg: this.gameState.teamOfTurn.name + "'s turn!",
-        img: {path: this.gameState.teamOfTurn.img, w:'5em', h:'5em'},
-        timeout: 3000,
-      })
+      // this.$store.dispatch('openModal', {
+      //   msg: this.gameState.teamOfTurn.name + "'s turn!",
+      //   img: {path: this.gameState.teamOfTurn.img, w:'5em', h:'5em'},
+      //   timeout: 3000,
+      // })
     },
 
     giveHint() {
