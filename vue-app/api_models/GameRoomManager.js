@@ -20,6 +20,7 @@ class GameRoomManager {
                 this.gameState[key] = props[key];
             }
             this.emitToAllConnections('updateGamePieces', props);
+
         })
 
         socket.on('updateUserData', (newUserData) => {
