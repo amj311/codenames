@@ -64,6 +64,8 @@ export default {
   height: 100%;
   box-sizing: border-box;
   border-radius: 10px;
+  font-size: 1em;
+  font-weight: bold;
   padding: .25em;
   display: flex;
   align-items: center;

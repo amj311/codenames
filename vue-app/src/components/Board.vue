@@ -11,7 +11,7 @@
     </div>
 
     <div v-if="gameState.cards.length > 0" class="cards-table" :style="{'pointer-events': (gameState.roundStatus == 'guessing' || gameState.roundStatus == 'gameOver') ? 'all' : 'none'}">
-      <div v-for="card in gameState.cards" :key="card.word" class="card-cell" :style="{width: cardWidth}">
+      <div v-for="card in gameState.cards" :key="card.word" class="card-cell" :style="{width: cardWidth+'%', 'padding-top': cardWidth*.60+'%'}">
         <Card :freeRotate="gameState.roundStatus == 'gameOver'" :card="card" @tryFlip="handleCardFlip" />
       </div>
     </div>
@@ -71,7 +71,7 @@ export default {
   },
 
   computed: {
-    cardWidth() { return Math.floor(100/this.gameState.layoutSqrFactor)+'%' }
+    cardWidth() { return Math.floor(100/this.gameState.layoutSqrFactor) }
   },
 
   methods: {
@@ -118,14 +118,19 @@ export default {
     generateNewCards() {
       this.$store.dispatch('generateNewCards');
 
-      // this.printSecretKey();
+      this.printSecretKey();
     },
 
     printSecretKey() {
-      console.group('cards')
-      let cards = this.state.game.cards;
-      for (let i = 0; i < cards.length; i+=this.gameState.layoutSqrFactor) {
-        console.log(`%c ${cards[i].word[0]} %c ${cards[i+1].word[0]} %c ${cards[i+2].word[0]} %c ${cards[i+3].word[0]} %c ${cards[i+4].word[0]} `, `color: #777; background-color: ${cards[i].color}`, `color: #777; background-color: ${cards[i+1].color}`, `color: #777; background-color: ${cards[i+2].color}`, `color: #777; background-color: ${cards[i+3].color}`, `color: #777; background-color: ${cards[i+4].color}`);
+      console.group('Cards')
+      for (let team of Object.values(this.gameState.teams)) {
+        if (team.selectable || team == this.gameState.teams.assassin) {
+          let string = "";
+          for (let card of team.deck) {
+            string += card.word + ", ";
+          }
+          console.log(`%c ${string} `, `color: #fff; background-color: ${team.color}; padding: .5em; font-weight: bold; text-shadow: 1px 1px 1px #0005`); 
+        }
       }
       console.groupEnd();
     },
@@ -266,7 +271,7 @@ h3 {
 
 div#topBar {
   font-weight: bold;
-  font-size: 1.75rem;
+  font-size: 1.25rem;
   padding: .4em;
   text-align: center;
   width: 100%;
