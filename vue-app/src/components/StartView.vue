@@ -67,7 +67,7 @@ export default {
     openMenu(menu) {
       this.showMenu = true;
       this.activeMenu = menu;
-      if (menu == "join") setTimeout( () => this.$refs.roomToJoin.focus(), 300 )
+      if (menu == "join") this.$nextTick( () => this.$refs.roomToJoin.focus() )
     },
     closeMenu() {
       this.showMenu = false;

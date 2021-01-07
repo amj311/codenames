@@ -11,7 +11,7 @@
           <input type="submit" hidden />
         </form>
         <form id="nicknameForm" v-if="state.modal.form == 'nickname'" @submit.prevent="modal_on('OK')">
-          <div class="form-row" style="font-size:1.4em"><input v-model="nickname" type="text" placeholder="Nickname" ref="firstInput" /></div>
+          <div class="form-row" style="font-size:1.4em"><input v-model="nickname" type="text" placeholder="Nickname" ref="nicknameInput" /></div>
           <input type="submit" hidden />
         </form>
         

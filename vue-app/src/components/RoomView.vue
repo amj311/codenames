@@ -206,6 +206,7 @@ export default {
         onOK: () => {context.$store.dispatch('emitUserData')},
         onNO: () => {context.$store.commit('goToView','start')},
       })
+
     }
     if (this.state.user.isHost) {
       this.$store.dispatch('emitRoom');

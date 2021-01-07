@@ -20,7 +20,7 @@
 
     <br>
 
-    <div id="bottomBar">
+    <div id="bottomBar" v-if="state.user.isHost || state.user.isCaptain">
       <div style="display: flex; justify-content: flex-start;">
       </div>
       <div>
