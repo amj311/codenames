@@ -145,6 +145,24 @@ export default new Vuex.Store({
 
 
   actions: {
+    resetToStart(context) {
+      context.state.room =  {
+        mode: null,
+        id: null,
+        players: [],
+        codeMasters: [],
+      }
+      context.state.user = {
+        isHost: false,
+        isPlayer: false,
+        isCaptain: false,
+        teamCode: 'bystander',
+        nickname: '',
+      }
+      context.commit('goToView', 'start')
+      
+    },
+
     updateGameState(context, props) {
       context.commit('updateStateObject', {object:'game',props})
       console.log("game:",context.state.game)
@@ -206,7 +224,6 @@ export default new Vuex.Store({
     joinGameRoom(context, rid:string) {
       context.state.user.isHost = false;
       context.state.user.isPlayer = true;
-      context.state.user.isCaptain = true;
       console.log('joinGameRoom '+rid)
       context.dispatch('setupSocket', {rid, cb: () => {
         context.dispatch('updateRoomState', rid)

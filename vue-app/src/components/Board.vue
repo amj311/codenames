@@ -173,14 +173,13 @@ export default {
       }
 
       else if (!res.wasTeamCard) {
-        setTimeout(this.initAdvanceTurn, 1000);
+        setTimeout(()=>this.onAdvanceTurn(res.teamOfTurn), 1000);
       }
       
       this.$store.dispatch('updateGameState', {
         winningCard: res.card,
         winner: res.winner,
         cards: res.cards,
-        teamOfTurn: res.teamOfTurn,
         state: res.state
       });
 
