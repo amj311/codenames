@@ -29,7 +29,7 @@
         <button @click="initAdvanceTurn" v-if="gameState.roundStatus == 'guessing'" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': gameState.teams.bystander.color}">END TURN</button>
         <button @click="initExitGame" v-if="gameState.roundStatus == 'gameOver'" class="ui-raised ui-pressable ui-shiny">PLAY AGAIN</button>
       </div>
-      <div style="display: flex; juexitGame-content: flex-end;">
+      <div style="display: flex; justify-content: flex-end;">
         <button @click="promptEndGame" v-if="gameState.roundStatus != 'gameOver'" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': '#888'}">END GAME</button>
       </div>
     </div>

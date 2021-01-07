@@ -1,7 +1,7 @@
 <template>
   <div id="setup" class="ui-view-wrapper">
     <div id="roomInfo">
-      <div id="roomCode"><i class="material-icons">tap_and_play</i><span>Room Code:<span style="text-transform: uppercase"> {{state.room.id}}</span></span></div>
+      <div id="roomCode"><i class="material-icons">tap_and_play</i><span>Room Code:<span class="code-cap"> {{state.room.id}}</span></span></div>
       <span style="text-transform: capitalize">Mode: {{state.room.mode}}</span>
     </div>
     
@@ -29,7 +29,7 @@
           </p>
           <img :src='appUrlQr' id="joinQR" />
           <p>Select <b>Join Room</b>, and enter this code:</p>
-          <h2><b>{{state.room.id}}</b></h2>
+          <h2><b class="code-cap">{{state.room.id}}</b></h2>
 
         </div>
       </div>
@@ -292,7 +292,9 @@ export default {
   flex-wrap: wrap;
   justify-content: space-around;
 }
-
+.code-cap{
+  text-transform: uppercase;
+}
 
 
 #settings {
