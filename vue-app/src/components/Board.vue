@@ -393,8 +393,8 @@ div#bottomBar > div {
   .card-cell {
     width: auto !important;
     max-width: 9em !important;
-    min-width: 8em !important;
-    height: 5em !important;
+    min-width: 7em !important;
+    height: 4.5em !important;
     padding-top: 0 !important;
     display: inline-block;
   }

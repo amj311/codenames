@@ -99,6 +99,8 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: .5em;
+  box-sizing: border-box;
 }
 .word {
   display: inline-block;

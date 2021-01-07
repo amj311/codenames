@@ -263,5 +263,8 @@ img.ui-raised {
   :root {
     font-size: 15px;
   }
+  #app {
+    display: block;
+  }
 }
 </style>
