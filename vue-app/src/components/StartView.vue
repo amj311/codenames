@@ -57,6 +57,7 @@ export default {
   components: {
   },
   data() {return ({
+    apiUrl: this.$store.state.apiUrl,
     showMenu: false,
     activeMenu: 'new',
     newGameMode: 'party',
@@ -72,12 +73,14 @@ export default {
       this.showMenu = false;
     },
     startGame() {
-      axios.get('/api/newroom/'+this.newGameMode).then( res=> {
+      axios.get(this.apiUrl+'/api/newroom/'+this.newGameMode).then( res=> {
         this.$store.dispatch('setupGameRoom', {id: res.data.rid, mode: this.newGameMode});
+      }).catch( err => {
+        console.log(err)
       })
     },
     joinGame() {
-      axios.get('/api/rooms/'+this.roomToJoin.toLowerCase()).then( res=> {
+      axios.get(this.apiUrl+'/api/rooms/'+this.roomToJoin.toLowerCase()).then( res=> {
         // this.$store.dispatch('setupGameRoom', {id: res.data.rid, mode: this.newGameMode});
         this.$store.dispatch('joinGameRoom', res.data.rid);
         console.log(res.data.rid)

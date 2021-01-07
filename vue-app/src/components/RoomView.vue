@@ -20,8 +20,22 @@
         </div>
       </div> -->
 
+
+      <div id="joinInstructions" class="ui-block">
+        <h3>How To Join</h3>
+        <div style="text-align:center">
+          <p>
+            Visit <b><a :href="appUrl">{{appUrl}}</a></b> or scan this QR code:
+          </p>
+          <img :src='appUrlQr' id="joinQR" />
+          <p>Select <b>Join Room</b>, and enter this code:</p>
+          <h2><b>{{state.room.id}}</b></h2>
+
+        </div>
+      </div>
+
       <div id="boardSettings" class="ui-block">
-        <h3>Board Preview</h3>
+        <h3>Game Settings</h3>
           <div id="boardPreview">
             <div v-for="card in previewCards" :key="card.idx" class="card-wrapper" :style="{width: cardWidth}">
               <div class="card ui-shiny ui-raised" :style="{backgroundColor: card.color}"></div>
@@ -30,8 +44,8 @@
           <form v-if="state.user.isHost">
             <div id="totalCards" class="form-row">
               <label>Cards</label>
-              <input type="range" name="numCards" v-model="newGameSqrFactor" min="3" max="6">
-              <label style="width:1em;">{{newGameSqrFactor**2}}</label>
+              <input type="range" name="numCards" v-model="newGameSqrt" min="3" max="6">
+              <label style="width:1em;">{{newGameSqrt**2}}</label>
             </div>
             <div id="teamCards" class="form-row">
               <div>
@@ -83,33 +97,50 @@
 
     </div>
 
-    <div id="bottomBar" class="ui-block" v-if="state.user.isHost">
-      <button class="inline ui-pressable ui-shiny" style="background: transparent; color: inherit;" @click="$store.commit('goToView', 'start')"><i class="material-icons">cancel</i>  Close Room</button>
+    <div id="bottomBar" class="ui-block">
+      <button v-if="state.user.isHost" class="inline ui-pressable ui-shiny" style="background: transparent; color: inherit;" @click="$store.commit('goToView', 'start')"><i class="material-icons">cancel</i>  Close Room</button>
+      <button v-else class="inline ui-pressable ui-shiny" style="background: transparent; color: inherit;" @click="$store.commit('goToView', 'start')"><i class="material-icons">cancel</i>Leave Room</button>
+      
       <button id="play" v-if="codeMasters.length>0" class="inline ui-pressable ui-shiny ui-raised" @click="startGame">PLAY!</button>
       <div v-else>Waiting for codemasters...</div>
-    </div>
-    <div id="bottomBar" class="ui-block" v-else>
-      <button class="inline ui-pressable ui-shiny" style="background: transparent; color: inherit;" @click="$store.commit('goToView', 'start')"><i class="material-icons">cancel</i>Leave Room</button>
     </div>
   </div>
 </template>
 
 <script>
+class RoomHandler {
+  constructor(vue) {
+    this.vue = vue;
+  }
+  startGame(game) {
+    this.vue.$store.dispatch("updateGameState",game)
+  }
+}
 
 export default {
   name: 'Room',
 
   data() {return({
     state: this.$store.state,
-    newGameSqrFactor: null,
+    gamePlayHandler: new RoomHandler(this),
+    appUrl: new URL(window.location.href).origin,
+    newGameSqrt: null,
     useTeam3: false,
     numAssassins: null,
     numTeamCards: null,
     numNeutralCards: null,
+    appUrlQr: require("../assets/qr-bom.png"),
   })},
 
-  created() {
-    console.log(this.state.room.players)
+  async mounted() {
+    fetch("https://api.qrapi.org/create?api_key=2bf6ed95d468a78cb2aef77a32036bcb&content="+encodeURIComponent(this.appUrl)).then(data=>{
+      return data.json()
+    })
+    .then(data=>{
+      this.appUrlQr = data.content.qr_code;
+    })
+
+    this.$store.commit("setGameplayHandler",this.gamePlayHandler)
     this.$store.dispatch('emitUserData');
 
     // FOR FULL REMOTE
@@ -131,21 +162,20 @@ export default {
     //just for testing
     this.$store.dispatch('updateRoomState', {players: this.testPlayers})
 
-    this.newGameSqrFactor = this.state.game.layoutSqrFactor;
+    this.newGameSqrt = this.state.game.layoutSqrFactor;
     this.numTeamCards = this.state.game.teams.teamOne.qty;
     this.numAssassins = this.state.game.teams.assassin.qty;
     this.calcNumNeutralCards();
-    console.log(this.newGameSqrFactor, this.numTeamCards, this.numNeutralCards)
+    console.log(this.newGameSqrt, this.numTeamCards, this.numNeutralCards)
   },
-
 
   watch: {
     userTeamSelection() {
       
     },
-    newGameSqrFactor() {
+    newGameSqrt() {
       this.calcNumNeutralCards()
-      this.$store.dispatch('updateGameState', {layoutSqrFactor: this.newGameSqrFactor})
+      this.$store.dispatch('updateGameState', {layoutSqrFactor: this.newGameSqrt})
     },
     numTeamCards() {
       this.$store.commit('setTeamQty', {team: 'teamOne', qty: this.numTeamCards})
@@ -166,14 +196,21 @@ export default {
   methods: {
     calcNumNeutralCards() {
       let numCompTeams = this.useTeam3 ? 3 : 2;
-      let numNeutral = this.newGameSqrFactor**2 - this.numAssassins - this.numTeamCards*numCompTeams;
+      let numNeutral = this.newGameSqrt**2 - this.numAssassins - this.numTeamCards*numCompTeams;
       this.$store.commit('setTeamQty', {team: 'bystander', qty: numNeutral})
       this.numNeutralCards = numNeutral;
       return numNeutral;
     },
 
     startGame() {
-      this.$store.dispatch('updateGameState',{roundStatus: ''})
+      let config = {
+        numCardsSqrt: this.newGameSqrt,
+        numTeams: this.useTeam3 ? 3 : 2,
+        numTeamCards: this.numTeamCards,
+        numAssassins: this.numAssassins,
+        numBystanders: this.numNeutralCards,
+      }
+      this.$store.dispatch('invokeGameMethod',{method:"startGame",args:[config]})
     }
   },
 
@@ -187,13 +224,14 @@ export default {
     },
 
     maxCompTeamQty() {
-      let availableCards = ((this.newGameSqrFactor**2) - this.numAssassins);
-      let maxCompTeamQty = 0;
+      let availableCards = ((this.newGameSqrt**2) - this.numAssassins);
+      // let maxCompTeamQty = 0;
       let numCompTeams = this.useTeam3 ? 3 : 2;
-      while (maxCompTeamQty * numCompTeams <= availableCards-numCompTeams) {
-        maxCompTeamQty++
-      }
-      return maxCompTeamQty;
+      // while (maxCompTeamQty * numCompTeams <= availableCards-numCompTeams) {
+      //   maxCompTeamQty++
+      // }
+      // return maxCompTeamQty;
+      return Math.floor(availableCards / numCompTeams);
     },
 
     previewCards() {
@@ -208,7 +246,7 @@ export default {
       return cards;
     },
 
-    cardWidth() { return Math.floor(100/this.newGameSqrFactor)+'%' },
+    cardWidth() { return Math.floor(100/this.newGameSqrt)+'%' },
 
     codeMasters() {
       if (!this.$store.state.room.players) return [];
@@ -271,6 +309,10 @@ export default {
     width: calc(50% - .5em);
 }
 
+img#joinQR {
+    width: 7em;
+}
+
 #teams {
   min-width: 16em;
 }
@@ -289,11 +331,6 @@ div#teamLists {
 }
 .playerCard img {
   width: 3em;
-}
-
-#boardSettings {
-  flex-grow: 3;
-  width: 60%;
 }
 
 #boardPreview {
@@ -363,12 +400,12 @@ button#play {
 
 @media screen and (max-width: 600px) {
   
-  /* #settings {
+  #settings {
     flex-direction: column;
   }
   #settings > div.ui-block {
     width: 100%;
-  } */
+  }
 
 }
 </style>

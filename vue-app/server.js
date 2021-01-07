@@ -1,7 +1,8 @@
 var createError = require('http-errors');
 var path = require('path');
 var cookieParser = require('cookie-parser');
-var crypto = require('crypto')
+var lt = require ("localtunnel");
+var open = require ("open");
 
 var express = require('express');
 var app = express();
@@ -10,7 +11,25 @@ var socketio = require('socket.io').listen(server);
 
 var cors = require('cors')
 
-server.listen(3000);
+let port = 3000;
+server.listen(port);
+
+(async () => {
+  const tunnel = await lt({
+    port,
+    subdomain: "bom-codenames"
+  });
+ 
+  // the assigned public url for your tunnel
+  console.log("App on network: "+tunnel.url);
+  open(tunnel.url)
+ 
+  tunnel.on('close', () => {
+    // tunnels are closed
+    console.log(`Network tunnel to port ${port} was closed.`)
+  });
+})();
+
 
 var corsOptions = {
   origin: 'http://localhost:8080',
@@ -38,7 +57,7 @@ function randomString(length) {
 }
 
 // ROOMS
-const RoomManager = require('./api_models/GameRoomManager.js')
+const RoomManager = require('../model/server/GameRoomManager.js')
 let rooms = [];
 
 function newRoom(mode) {

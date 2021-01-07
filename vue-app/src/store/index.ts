@@ -4,8 +4,11 @@ import socketio from 'socket.io-client'
 
 Vue.use(Vuex)
 
+let gameplayHandler:any;
+
 export default new Vuex.Store({
   state: {
+    apiUrl: process.env.NODE_ENV=="development"? "http://localhost:3000" : "",
     socket: null,
     view: 'start',
     wordSet: [],
@@ -17,6 +20,9 @@ export default new Vuex.Store({
     },
     
     game: {
+      state: null,
+      config: null,
+
       layoutSqrFactor: 5,
       cards: [],
 
@@ -24,7 +30,7 @@ export default new Vuex.Store({
         teamOne: { qty: 9, selectable: true, color: "#0bf", name: "Blue", deck: [], points: 0, img: require('@/assets/ninjas/blue.png'), members: [] },
         teamTwo: { qty: 9, selectable: true, color: "#f22", name: "Red", deck: [], points: 0, img: require('@/assets/ninjas/red.png'), members: [] },
         teamThree: { qty: 0, selectable: false, color: "#0f2", name: "Green", deck: [], points: 0, img: require('@/assets/ninjas/green.png'), members: [] },
-        bystander: { qty: 6, selectable: true, color: "#f4d96a", name: "Bystander", deck: [], points: 0, img: require('@/assets/ninjas/yellow.png'), members: [] },
+        bystander: { qty: 6, selectable: true, color: "#edcb40", name: "Bystander", deck: [], points: 0, img: require('@/assets/ninjas/yellow.png'), members: [] },
         assassin: { qty: 1, color: "#2c3e50", name: "Assassin", deck: [], points: 0, img: require('@/assets/ninjas/black.png') },
       },
 
@@ -74,7 +80,7 @@ export default new Vuex.Store({
 
       for (let key of Object.keys(options.props)) {
         if (stateKeys.lastIndexOf(key) >= 0) state[options.object][key] = options.props[key];
-        else console.error("state."+options.object+" has no property " + key)
+        // else console.error("state."+options.object+" has no property " + key)
       }
     },
     updateTeamMembers(state, props:{teamCode:string,members:any}) {
@@ -129,6 +135,11 @@ export default new Vuex.Store({
         team.points = 0;
       }
     },
+
+    setGameplayHandler(state, handler) {
+      console.log("new handler",handler)
+      gameplayHandler = handler;
+    }
   },
 
 
@@ -136,6 +147,7 @@ export default new Vuex.Store({
   actions: {
     updateGameState(context, props) {
       context.commit('updateStateObject', {object:'game',props})
+      console.log("game:",context.state.game)
     },
     updateRoomState(context, props) {
       context.commit('updateStateObject', {object:'room',props})
@@ -148,7 +160,7 @@ export default new Vuex.Store({
 
     setupSocket(context:any, options:{rid:string, cb: any}) {
       let state = context.state;
-      if (!state.socket) state.socket = socketio('');
+      if (!state.socket) state.socket = socketio(context.state.apiUrl);
       let socket = state.socket;
       console.log('joinRoom '+options.rid)
 
@@ -166,6 +178,9 @@ export default new Vuex.Store({
           let members = this.state.room.players.filter( (p:any) => (p.teamCode == teamCode) || (teamCode == 'bystander' && !p.teamCode));
           context.commit('updateTeamMembers', { teamCode, members })
         }
+      })
+      socket.on('handleGameplay', (props:{method:string,payload:any})=> {
+        if (gameplayHandler) gameplayHandler[props.method](props.payload);
       })
 
 
@@ -215,7 +230,9 @@ export default new Vuex.Store({
     },
 
 
-
+    invokeGameMethod(context,props:{method:string,args:any[]}) {
+      context.state.socket.emit('invokeGameMethod', props.method,props.args)
+    },
 
     openModal(context: any, props) {
       context.commit('updateModal', props)

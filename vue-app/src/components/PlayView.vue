@@ -1,6 +1,6 @@
 <template>
   <div class="ui-view-wrapper">
-    <RoomView v-if="gameState.roundStatus == 'room'" />
+    <RoomView v-if="!gameState.state.isInPlay" />
     <Board v-else style="width: 100%" />
   </div>
 </template>
@@ -21,7 +21,7 @@ export default {
   }},
 
   created() {
-    console.log(this.gameState)
+    console.log(this.gameState.state.isInPlay)
   }
 }
 </script>

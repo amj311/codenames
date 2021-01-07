@@ -1,11 +1,12 @@
 <template>
-  <div class="wrapper" :class="{flipped: card.flipped, freeRotate: freeRotate}">
+  <div class="wrapper" :class="{flipped: card.revealed, freeRotate: freeRotate}">
     <div class="card">
-      <div class="card-face front ui-raised" :class="{'ui-pressable': !card.flipped && !freeRotate}" @click="emitClick($event)" >
-        <div>{{ card.word }}</div>
+      <div class="card-face front ui-raised" :class="{'ui-pressable': !card.revealed && !freeRotate}" @click="emitClick($event)" >
+        <div v-if="state.user.isCaptain" class="color-banner" :style="{backgroundColor: card.color}"></div>
+        <div class="word-wrapper"><span class="word">{{ card.word }}</span></div>
       </div>
       <div class="card-face back ui-raised" :style="{backgroundColor: card.color}" style="background-image: linear-gradient(35deg, transparent 30%, rgba(255, 255, 255, 0.267) 35%, transparent 45%, transparent 52%, rgba(255, 255, 255, 0.267) 57%, transparent 73%)">
-        <img v-if="card.showTeamImg" :src="card.team.img" style="width: 3em;" class="ui-raised" />
+        <img v-if="showTeamImg" :src="teamImg" style="width: 3em;" class="ui-raised" />
       </div>
     </div>
   </div>
@@ -18,12 +19,24 @@ export default {
   props: ["card", "freeRotate"],
 
   data() { return {
-    flipped: false
+    flipped: false,
+    
+    state: this.$store.state,
+    gameState: this.$store.state.game,
   }},
 
   methods: {
     emitClick(event) {
       this.$emit('tryFlip', {event, card: this.card})
+    }
+  },
+
+  computed: {
+    showTeamImg() {
+      return this.gameState.winningCard && this.gameState.winningCard.id == this.card.id;
+    },
+    teamImg() {
+      return this.gameState.teams[this.card.teamId].img
     }
   }
 }
@@ -64,22 +77,39 @@ export default {
   height: 100%;
   box-sizing: border-box;
   border-radius: 10px;
+  overflow: hidden;
   font-size: 1em;
   font-weight: bold;
-  padding: .25em;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  /* align-items: center;
+  justify-content: center; */
   user-select: none;
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
 }
 .card-face > div {
   width: 100%;
+}
+.color-banner {
+  height: .75em;
+}
+.word-wrapper {
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.word {
+  display: inline-block;
+  width: 100%;
   word-wrap: break-word;
+  font-size: .9em;
 }
 
 .back {
+  align-items: center;
+  justify-content: center;
   transform: rotateX(180deg);
   position: relative;
   outline: none;

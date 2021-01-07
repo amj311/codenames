@@ -34,7 +34,7 @@ export default {
 
 <style>
 :root {
-  font-size: 3vh;
+  font-size: 2vh;
 }
 body {
   background: #f5f5f5;
@@ -79,7 +79,7 @@ body::before {
   position: relative;
   width: 100%;
   height: 100%;
-  max-width: 40rem;
+  max-width: 42rem;
   display: flex;
   align-content: center;
   align-items: center;
@@ -255,13 +255,13 @@ img.ui-raised {
 
 @media screen and (max-aspect-ratio: 1/1) {
   :root {
-    font-size: 3vw;  /* cyan */
+    font-size: 2vw;
   }
 }
 
-@media screen and (max-width: 400px) {
+@media screen and (max-width: 600px) {
   :root {
-    font-size: 15px;  /* cyan */
+    font-size: 15px;
   }
 }
 </style>

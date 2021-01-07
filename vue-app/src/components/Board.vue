@@ -6,16 +6,15 @@
         
         <!-- FOR FULL REMOTE -->
         <!-- <div id="activeHint">{{gameState.roundStatus =='guessing' ? `"${gameState.turnHint}"` : "Waiting for hint..."}}</div> -->
-        
-        <div id="guessCounter" v-if="gameState.roundStatus == 'guessing'">Attempts: {{Math.max(0, gameState.turnGuesses-gameState.usedGuesses)}}<span class="extraHint"> + 1</span></div>
+        <!-- <div id="guessCounter" v-if="gameState.roundStatus == 'guessing'">Attempts: {{Math.max(0, gameState.turnGuesses-gameState.usedGuesses)}}<span class="extraHint"> + 1</span></div> -->
       </div>
       <div id="winnerMsg" v-else-if="gameState.roundStatus == 'gameOver'"><div class="ui-raised ui-shiny" :style="`text-align: center; margin: 0 auto; background-color: ${gameState.winner? gameState.winner.color : gameState.teams.bystander.color}; color: #fff; padding: 0 .4em; border-radius: 5px;`">{{gameState.winner? gameState.winner.name+" Wins!" : "DRAW!"}}</div></div>
       <div v-else>Ready!</div>
     </div>
 
     <div v-if="gameState.cards.length > 0" class="cards-table" :style="{'pointer-events': (gameState.roundStatus == 'guessing' || gameState.roundStatus == 'gameOver') ? 'all' : 'none'}">
-      <div v-for="card in gameState.cards" :key="card.word" class="card-cell" :style="{width: cardWidth+'%', 'padding-top': cardWidth*.60+'%'}">
-        <Card :freeRotate="gameState.roundStatus == 'gameOver'" :card="card" @tryFlip="handleCardFlip" />
+      <div v-for="card in gameState.cards" :key="card.word" :id="'card_'+card.id" class="card-cell" :style="{width: cardWidth+'%', 'padding-top': cardWidth*.60+'%'}">
+        <Card :freeRotate="gameState.roundStatus == 'gameOver'" :card="card" @tryFlip="initCardFlip" />
       </div>
     </div>
 
@@ -27,10 +26,10 @@
       <div>
         <!-- FOR FULL REMOTE -->
         <!-- <button @click="giveHint" v-if="gameState.roundStatus == 'givingHint'" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': gameState.teamOfTurn.color}">GIVE HINT</button> -->
-        <button @click="advanceTurn" v-if="gameState.roundStatus == 'guessing'" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': gameState.teams.bystander.color}">END TURN</button>
-        <button @click="exitBoard()" v-if="gameState.roundStatus == 'gameOver'" class="ui-raised ui-pressable ui-shiny">PLAY AGAIN</button>
+        <button @click="initAdvanceTurn" v-if="gameState.roundStatus == 'guessing'" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': gameState.teams.bystander.color}">END TURN</button>
+        <button @click="initExitGame" v-if="gameState.roundStatus == 'gameOver'" class="ui-raised ui-pressable ui-shiny">PLAY AGAIN</button>
       </div>
-      <div style="display: flex; justify-content: flex-end;">
+      <div style="display: flex; juexitGame-content: flex-end;">
         <button @click="promptEndGame" v-if="gameState.roundStatus != 'gameOver'" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': '#888'}">END GAME</button>
       </div>
     </div>
@@ -47,6 +46,16 @@
 <script>
 import Card from './Card.vue'
 
+class GameplayHandler {
+  constructor(vue) {
+    this.vue = vue;
+  }
+  advanceTurn(teamOfTurn) { this.vue.onAdvanceTurn(teamOfTurn) }
+  revealCard(res) { this.vue.onRevealCard(res) }
+  endGame(game) { this.vue.onEndGame(game) }
+  exitGame(game) { this.vue.onExitGame(game) }
+}
+
 export default {
   name: 'Board',
   components: {
@@ -57,20 +66,26 @@ export default {
     state: this.$store.state,
     gameState: this.$store.state.game,
     ninjasImgs: this.$store.state.ninjasImgs,
+    gameplayHandler: new GameplayHandler(this),
 
     anims: [],
   }},
 
-  created() {
-    this.canPlay = this.deckIsGood();
+  mounted() {
+    console.log(this.gameplayHandler)
+    this.$store.commit("setGameplayHandler",this.gameplayHandler)
+
     this.gameState.teams.assassin.img = this.ninjasImgs.black;
     this.gameState.teams.teamOne.img = this.ninjasImgs.blue;
     this.gameState.teams.teamTwo.img = this.ninjasImgs.red;
     this.gameState.teams.bystander.img = this.ninjasImgs.yellow;
 
-    console.log('Setting new Game')
+    this.printSecretKey();
+    this.onAdvanceTurn(this.gameState.teamOfTurn);
+  },
 
-    this.setNewGame();
+  beforeDestroy() {
+    this.$store.commit("setGameplayHandler",null)
   },
 
   computed: {
@@ -78,28 +93,17 @@ export default {
   },
 
   methods: {
-    deckIsGood() {
-      let totCards = 0;
-      for (let team of Object.values(this.gameState.teams)) {
-        totCards += team.qty;
-      }
-      return totCards == this.numCards;
-    },
-
-    resetBoard() {
-      this.$store.commit('clearBoard');
-      this.$store.commit("resetGame")
-    },
-
     endGame() {
       // this.resetBoard();
       // this.$store.commit('goToView','room');  
       this.$store.dispatch('updateGameState',{roundStatus: 'gameOver'});
       this.emitBoard();
     },
-    exitBoard(){
-      this.$store.dispatch('updateGameState',{roundStatus: 'room'})
-      this.emitBoard();
+    initExitGame(){
+      this.$store.dispatch('invokeGameMethod',{method:"exitGame",args:[]})
+    },
+    onExitGame(game){
+      this.$store.dispatch('updateGameState',game)
     },
     promptEndGame() {
       this.$store.dispatch('openModal', {
@@ -110,47 +114,26 @@ export default {
       })
     },
 
-    setNewGame() {
-      this.resetBoard();
-      this.generateNewCards();
-      this.advanceTurn();
-      this.emitBoard();
-
-      // FOR FULL REMOTE
-      // let context = this;
-      // this.$nextTick( ()=> this.$store.dispatch('openModal', {
-      //   msg: "Are you ready to start?",
-      //   onOK() { 
-      //     context.$store.dispatch('closeModal');
-      //     setTimeout( context.advanceTurn, 0 );
-      //   },
-      // }))
-    },
-
     emitBoard() {
       console.log("emitting board")
-      let props = ["usedGuesses","turnGuesses","turnHint","winner","cards","teamOfTurn","canPlay","roundStatus"]
+      let props = ["teams","usedGuesses","turnGuesses","turnHint","winner","cards","teamOfTurn","canPlay","roundStatus"]
       this.$store.dispatch('emitGamePieces', props);
     },
 
-    generateNewCards() {
-      this.$store.dispatch('generateNewCards');
-
-      this.printSecretKey();
-    },
-
     printSecretKey() {
-      // console.group('Cards')
-      // for (let team of Object.values(this.gameState.teams)) {
-      //   if (team.selectable || team == this.gameState.teams.assassin) {
-      //     let string = "";
-      //     for (let card of team.deck) {
-      //       string += card.word + ", ";
-      //     }
-      //     console.log(`%c ${string} `, `color: #fff; background-color: ${team.color}; padding: .5em; font-weight: bold; text-shadow: 1px 1px 1px #0005`); 
-      //   }
-      // }
-      // console.groupEnd();
+      console.group('Cards')
+      let sqrt = this.gameState.config.numCardsSqrt;
+      for (let row = 0; row < sqrt; row++){
+        let words = "";
+        let styles = [];
+        for (let col = 0; col < sqrt; col++) {
+          let card = this.gameState.cards[row*sqrt + col]
+          words+=`%c ${card.word[0]} `
+          styles.push(`background-color: ${card.color}; color: #fff; padding: .1em; margin-right:2px; font-weight: bold; text-shadow: 1px 1px 1px #0005; border-radius:.2em`)
+        }
+        console.log(words,...styles)
+      }
+      console.groupEnd();
     },
 
     pausePlay(){
@@ -160,58 +143,69 @@ export default {
       })
     },
 
-    handleCardFlip(e) {
-      if(this.gameState.roundStatus == "guessing" && this.gameState.roundStatus != 'gameOver') {
-        e.card.team.points++;
-        this.$store.commit('useGuess');
-        e.card.flipped = true;
-
-        if (e.card.team == this.gameState.teamOfTurn) this.animateGoodFlip(e.event);
-        else if (e.card.team == this.gameState.teams.assassin) this.animateAssassin(e.event);
-        else this.animateBadFlip(event)
-
-        if (
-          (e.card.team == this.gameState.teams.assassin || e.card.team.points == e.card.team.qty) &&
-          e.card.team != this.gameState.teams.bystander) {
-          this.pausePlay();
-          
-          this.$store.dispatch('updateGameState', {
-            roundStatus: "",
-            winner: e.card.team,
-          });
-          
-          e.card.showTeamImg = true;
-          let context = this;
-          setTimeout( () => {
-            this.$store.dispatch('updateGameState', {canPlay: true});
-            this.$store.dispatch('openModal', {
-              msg: context.gameState.winner.name + " wins!",
-              img: {path: e.card.team.img, w:'15em', h:'15em'},
-              onEX() { context.endGame(); },
-              timeout: 3000,
-            });
-          }
-          , 1000)
-        }
-
-        else {
-          if (e.card.team != this.gameState.teamOfTurn || this.gameState.usedGuesses > this.gameState.turnGuesses) {
-            this.pausePlay();
-            setTimeout(this.advanceTurn, 1000);
-          }
-        }
-
-        this.emitBoard();
-
+    initCardFlip(e) {
+      if(this.state.user.isCaptain && this.gameState.state.canRevealCard) {
+        this.$store.dispatch('invokeGameMethod',{method:"revealCard",args:[e.card.id]})
       }
     },
 
-    advanceTurn() {
+    onRevealCard(res) {
+      console.log("revealed card!",res)
+
+      if (res.wasTeamCard) this.animateGoodFlip(res.card.id);
+      else if (res.card.teamId == this.gameState.teams.assassin.id) this.animateAssassin(res.card.id);
+      else this.animateBadFlip(res.card.id)
+
+
+      if (res.winner) {
+        
+        let context = this;
+        setTimeout( () => {
+          this.$store.dispatch('updateGameState', {canPlay: true});
+          this.$store.dispatch('openModal', {
+            msg: res.winner.name + " wins!",
+            img: {path: this.gameState.teams[res.winner.id].img, w:'15em', h:'15em'},
+            onEX() { context.endGame(); },
+            timeout: 3000,
+          });
+        }
+        , 1000)
+      }
+
+      else if (!res.wasTeamCard) {
+        setTimeout(this.initAdvanceTurn, 1000);
+      }
+      
+      this.$store.dispatch('updateGameState', {
+        winningCard: res.card,
+        winner: res.winner,
+        cards: res.cards,
+        teamOfTurn: res.teamOfTurn,
+        state: res.state
+      });
+
+    },
+
+    getCardTeam(card) {
+      let team = Array.from(Object.values(this.gameState.teams)).find(t => t.name = card.team.name);
+      return team;
+    },
+    increaseCardTeamPoint(card){
+      let team = this.getCardTeam(card)
+      team.points++;
+      console.log("Awarding point:",team.name,team.points);
+    },
+
+    initAdvanceTurn() {
+      this.$store.dispatch('invokeGameMethod',{method:"advanceTurn",args:[]})
+    },
+
+    onAdvanceTurn(teamOfTurn) {
       this.$store.commit('resetRound')
 
-      if (this.gameState.teamOfTurn == this.gameState.teams.teamOne) this.$store.dispatch('updateGameState', {teamOfTurn: this.gameState.teams.teamTwo});
-      else this.$store.dispatch('updateGameState', {teamOfTurn: this.gameState.teams.teamOne});
-      
+      console.log("Switching turn!",teamOfTurn)
+      this.$store.dispatch('updateGameState', {teamOfTurn});
+
       // FOR PARTY
       this.$store.dispatch('updateGameState', {
         canPlay: true,
@@ -221,57 +215,72 @@ export default {
       // FOR FULL REMOTE
       // this.$store.dispatch('updateGameState', {roundStatus: 'givingHint'});
       
-      // this.$store.dispatch('openModal', {
-      //   msg: this.gameState.teamOfTurn.name + "'s turn!",
-      //   img: {path: this.gameState.teamOfTurn.img, w:'5em', h:'5em'},
-      //   timeout: 3000,
-      // })
+      this.$store.dispatch('openModal', {
+        msg: teamOfTurn.name + "'s turn!",
+        img: {path: this.gameState.teams[teamOfTurn.id].img, w:'5em', h:'5em'},
+        timeout: 3000,
+      })
+
+      // this.emitBoard();
     },
 
-    giveHint() {
-      let context = this;
-      this.$store.dispatch('openModal', {
-        msg: "Write a hint for your team!",
-        img: {path: this.gameState.teamOfTurn.img, w:'5em', h:'5em'},
-        form: 'turnHint',
-        onOK() {
-          context.$store.dispatch('updateGameState', {
-            canPlay: true,
-            roundStatus: "guessing",
-          });
-        },
-        onEX: () => {return},
-        onNO: () => {return},
-        isValid: () => { return context.gameState.turnHint },
-        alert: "You must provide a hint!",
-      })
-    },
+    // giveHint() {
+    //   let context = this;
+    //   this.$store.dispatch('openModal', {
+    //     msg: "Write a hint for your team!",
+    //     img: {path: this.gameState.teamOfTurn.img, w:'5em', h:'5em'},
+    //     form: 'turnHint',
+    //     onOK() {
+    //       context.$store.dispatch('updateGameState', {
+    //         canPlay: true,
+    //         roundStatus: "guessing",
+    //       });
+    //     },
+    //     onEX: () => {return},
+    //     onNO: () => {return},
+    //     isValid: () => { return context.gameState.turnHint },
+    //     alert: "You must provide a hint!",
+    //   })
+    // },
 
     removeAnim(id){
       this.anims = this.anims.filter(a => a.id != id)
     },
 
-    animateGoodFlip(event) {
+    animateGoodFlip(cardId) {
+      let pos = this.getCardCenter(cardId);
+
       let duration = 2000;
       let id = `anim_${Date.now()}`
-      this.anims.push({id, class: 'fade-up', left: event.x, top: event.y, duration, spriteText: '👍', size: '3rem'})
+      this.anims.push({id, class: 'fade-up', left: pos.x, top: pos.y, duration, spriteText: '👍', size: '3rem'})
       let app = this;
       setTimeout( function() { app.removeAnim(id) }, duration)
     },
 
-    animateBadFlip(event) {
+    animateBadFlip(cardId) {
+      let pos = this.getCardCenter(cardId);
+
       let duration = 2000;
       let id = `anim_${Date.now()}`
-      this.anims.push({id, class: 'fade-down', left: event.x, top: event.y, duration, spriteText: '😥', size: '3rem'})
+      this.anims.push({id, class: 'fade-down', left: pos.x, top: pos.y, duration, spriteText: '😥', size: '3rem'})
       let app = this;
       setTimeout( function() { app.removeAnim(id) }, duration)
     },
-    animateAssassin(event) {
+    animateAssassin(cardId) {
+      let pos = this.getCardCenter(cardId);
+
       let duration = 1500;
       let id = `anim_${Date.now()}`
-      this.anims.push({id, class: 'fade-grow', left: event.x, top: event.y, duration, spriteImg: this.ninjasImgs.black, size: '3rem'})
+      this.anims.push({id, class: 'fade-grow', left: pos.x, top: pos.y, duration, spriteImg: this.ninjasImgs.black, size: '3rem'})
       let app = this;
       setTimeout( function() { app.removeAnim(id) }, duration)
+    },
+
+    getCardCenter(cardId) {
+      let rect = document.getElementById('card_'+cardId).getBoundingClientRect();
+      let x = rect.x + rect.width/2;
+      let y = rect.y + rect.height/2;
+      return {x,y}
     }
 
   }
@@ -287,6 +296,8 @@ h3 {
 .cards-table {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
 }
 .card-cell {
   flex-grow: 1;
@@ -376,5 +387,17 @@ div#bottomBar > div {
 @keyframes fadeGrow {
   from { opacity: 1; transform: translate(-50%, 50%) scale(1) }
   to { opacity: 0; transform: translate(-50%, 50%) scale(5)  }
+}
+
+
+@media screen and (max-width: 600px) {
+  .card-cell {
+    width: auto !important;
+    max-width: 9em !important;
+    min-width: 8em !important;
+    height: 5em !important;
+    padding-top: 0 !important;
+    display: inline-block;
+  }
 }
 </style>
