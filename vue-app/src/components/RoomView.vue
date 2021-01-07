@@ -388,8 +388,9 @@ img#joinQR {
   background: #f1f1f1;
   display: inline-block;
   font-weight: bold;
-  padding: .4em;
+  padding: .5em;
   border-radius: .5em;
+  margin-right: 0.5em;
 }
 
 div#teamLists {
