@@ -14,22 +14,23 @@ var cors = require('cors')
 let port = 3000;
 server.listen(port);
 
-(async () => {
-  const tunnel = await lt({
-    port,
-    subdomain: "bom-codenames"
-  });
- 
-  // the assigned public url for your tunnel
-  console.log("App on network: "+tunnel.url);
-  open(tunnel.url)
- 
-  tunnel.on('close', () => {
-    // tunnels are closed
-    console.log(`Network tunnel to port ${port} was closed.`)
-  });
-})();
-
+if (process.env.NODE_ENV == "production") {
+  (async () => {
+    const tunnel = await lt({
+      port,
+      subdomain: "bom-codenames"
+    });
+  
+    // the assigned public url for your tunnel
+    console.log("App on network: "+tunnel.url);
+    open(tunnel.url)
+  
+    tunnel.on('close', () => {
+      // tunnels are closed
+      console.log(`Network tunnel to port ${port} was closed.`)
+    });
+  })();
+}
 
 var corsOptions = {
   origin: 'http://localhost:8080',
