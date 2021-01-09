@@ -14,7 +14,11 @@ var cors = require('cors')
 let port = 3000;
 server.listen(port);
 
-// if (process.env.NODE_ENV == "production") {
+let dev = require("./env.json").dev;
+process.env.DEV = dev;
+console.log("Running dev:"+process.env.DEV)
+
+if (!dev) {
   (async () => {
     const tunnel = await lt({
       port,
@@ -30,7 +34,7 @@ server.listen(port);
       console.log(`Network tunnel to port ${port} was closed.`)
     });
   })();
-// }
+}
 
 var corsOptions = {
   origin: 'http://localhost:8080',
