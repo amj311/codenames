@@ -72,7 +72,6 @@ export default {
   }},
 
   mounted() {
-    console.log(this.gameplayHandler)
     this.$store.commit("setGameplayHandler",this.gameplayHandler)
 
     this.gameState.teams.assassin.img = this.ninjasImgs.black;
@@ -115,7 +114,6 @@ export default {
     },
 
     emitBoard() {
-      console.log("emitting board")
       let props = ["teams","usedGuesses","turnGuesses","turnHint","winner","cards","teamOfTurn","canPlay","roundStatus"]
       this.$store.dispatch('emitGamePieces', props);
     },
@@ -150,8 +148,6 @@ export default {
     },
 
     onRevealCard(res) {
-      console.log("revealed card!",res)
-
       if (res.wasTeamCard) this.animateGoodFlip(res.card.id);
       else if (res.card.teamId == this.gameState.teams.assassin.id) this.animateAssassin(res.card.id);
       else this.animateBadFlip(res.card.id)
@@ -192,7 +188,6 @@ export default {
     increaseCardTeamPoint(card){
       let team = this.getCardTeam(card)
       team.points++;
-      console.log("Awarding point:",team.name,team.points);
     },
 
     initAdvanceTurn() {
@@ -201,8 +196,6 @@ export default {
 
     onAdvanceTurn(teamOfTurn) {
       this.$store.commit('resetRound')
-
-      console.log("Switching turn!",teamOfTurn)
       this.$store.dispatch('updateGameState', {teamOfTurn});
 
       // FOR PARTY

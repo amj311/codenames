@@ -91,7 +91,6 @@ export default {
     },
     joinGame() {
       axios.get(this.apiUrl+'/api/rooms/'+this.roomToJoin.toLowerCase()).then( res=> {
-        console.log(res.data)
         if (!res.data.ok) {
           this.$store.dispatch("publishNotif", new Notification({
             type:"err",
@@ -100,7 +99,6 @@ export default {
         }
         else {
           this.$store.dispatch('joinGameRoom', res.data.rid);
-          console.log(res.data.rid)
         }
       })
     },
