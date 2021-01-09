@@ -87,7 +87,7 @@ export default new Vuex.Store({
 
       for (let key of Object.keys(options.props)) {
         if (stateKeys.lastIndexOf(key) >= 0) state[options.object][key] = options.props[key];
-        // else console.error("state."+options.object+" has no property " + key)
+        else console.error("state."+options.object+" has no property " + key)
       }
     },
     updateTeamMembers(state, props:{teamCode:string,members:any}) {
@@ -144,11 +144,9 @@ export default new Vuex.Store({
     },
 
     setGameplayHandler(state, handler) {
-      console.log("new gamehandler",handler)
       gameplayHandler = handler;
     },
     setRoomHandler(state, handler) {
-      console.log("new roomhandler",handler)
       roomHandler = handler;
     },
 
@@ -203,7 +201,6 @@ export default new Vuex.Store({
       
       socket.emit('joinRoom',options.rid, state.user, () => {
         state.room.id = options.rid;
-        console.log("I'm connected to room: "+options.rid)
         setUnclosedConn(socket.id,state.room.id);
         options.cb();
       })
@@ -212,7 +209,6 @@ export default new Vuex.Store({
     setupGameRoom(context, props: {id:string, mode: string}) {
       context.state.user.isHost = true;
       context.state.user.isPlayer = (props.mode != 'party');
-      console.log('setupGameRoom '+props.id)
 
       context.dispatch('connectToRoom', {rid: props.id, cb: () => {
         context.dispatch('updateRoomState', props)
@@ -222,6 +218,7 @@ export default new Vuex.Store({
     joinGameRoom(context, rid:string) {
       context.state.user.isHost = false;
       context.state.user.isPlayer = true;
+      
       console.log('joinGameRoom '+rid)
       context.dispatch('connectToRoom', {rid, cb: () => {
         context.dispatch('updateRoomState', rid)
@@ -318,8 +315,6 @@ export default new Vuex.Store({
       let usedWordIdxs = [];
       let numCards: number = context.state.game.layoutSqrFactor ** 2;
       let teams = Object.values(context.state.game.teams);
-      console.log(numCards)
-      console.log(context.state.game.teams)
       for (let i = 0; i < numCards; i++) openCardIdxs.push(i);
 
       do {
@@ -355,7 +350,6 @@ export default new Vuex.Store({
     },
 
     removeNotif(context,notifId) {
-      console.log("remving notif: "+notifId)
       context.state.notifs = context.state.notifs.filter((n:any)=>n.id!=notifId);
     },
     consumeNotif(context,props:{id:any,action:any}) {
@@ -370,13 +364,11 @@ export default new Vuex.Store({
 
 
 function setupNewSocket(socket:any,context:any) {
-  console.log(socket)
   let state = context.state;
   if (!socket) socket = socketio(context.state.apiUrl);
 
   
   socket.on('connect', () => {
-    console.log("connected");
     let oldConnection = getUnclosedConn();
     if (oldConnection) {
       console.log("Can try reconnecting to old connection.")
@@ -384,9 +376,9 @@ function setupNewSocket(socket:any,context:any) {
     }
   });
 
-  socket.on('msg', (msg: string) => console.log(msg));
+  socket.on('msg', (msg: string) => console.log("Message from socket: "+msg));
   socket.on('err', (msg: string) => {
-    console.log(msg);
+    console.log("Error from socket: "+msg);
     context.dispatch("publishNotif", new Notification({msg}))
   });
 
@@ -394,7 +386,6 @@ function setupNewSocket(socket:any,context:any) {
     context.dispatch('updateGameState', props)
   })
   socket.on('updateRoom', (props:any)=> {
-    console.log('updating room: ',props)
     context.dispatch('updateRoomState', props)
   })
   socket.on('updatePlayers', (props:any)=> {
@@ -435,7 +426,6 @@ function setupNewSocket(socket:any,context:any) {
 
 function setUnclosedConn(socketId:string,roomId:string) {
   let connectionData = {socketId,roomId}
-  console.log(connectionData)
   localStorage.setItem("unclosedConnection",JSON.stringify(connectionData))
 }
 function getUnclosedConn() {

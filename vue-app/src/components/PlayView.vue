@@ -24,7 +24,7 @@ class RoomHandler {
     this.vue.onPlayerConnect(player);
   }
   playerDisconnect(player) {
-    console.log(player)
+    console.log("Lost player: ",player)
     this.vue.onPlayerDisconnect(player);
   }
 }
@@ -56,10 +56,8 @@ export default {
       console.log("lost host!");
     },
     onPlayerDisconnect(player){
-      console.log("lost player:"+player.nickname);
-      
       this.$store.dispatch("publishNotif", new Notification({
-        msg: "lost player:"+player.nickname
+        msg: "Lost player:"+player.nickname
       }))
     }
   }

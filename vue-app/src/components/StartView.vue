@@ -82,7 +82,11 @@ export default {
       axios.get(this.apiUrl+'/api/newroom/'+this.newGameMode).then( res=> {
         this.$store.dispatch('setupGameRoom', {id: res.data.rid, mode: this.newGameMode});
       }).catch( err => {
-        console.log(err)
+        console.log(err);
+        this.$store.dispatch("publishNotif", new Notification({
+            type:"err",
+            msg: "Server Error"
+          }))
       })
     },
     joinGame() {

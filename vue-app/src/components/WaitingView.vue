@@ -219,7 +219,6 @@ export default {
     this.numTeamCards = this.state.game.teams.teamOne.qty;
     this.numAssassins = this.state.game.teams.assassin.qty;
     this.calcNumNeutralCards();
-    console.log(this.newGameSqrt, this.numTeamCards, this.numNeutralCards)
   },
 
   watch: {
