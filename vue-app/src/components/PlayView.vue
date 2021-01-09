@@ -1,27 +1,67 @@
 <template>
   <div class="ui-view-wrapper">
-    <RoomView v-if="!gameState.state.isInPlay" />
+    <WaitingView v-if="!gameState.state.isInPlay" />
     <Board v-else style="width: 100%" />
   </div>
 </template>
 
 <script>
 import Board from './Board.vue'
-import RoomView from './RoomView.vue'
+import WaitingView from './WaitingView.vue'
+
+
+class RoomHandler {
+  constructor(vue) {
+    this.vue = vue;
+  }
+  roomClosed() {
+    this.vue.onRoomClosed();
+  }
+  hostDisconnect() {
+    this.vue.onHostDisconnect();
+  }
+  playerConnect(player) {
+    this.vue.onPlayerConnect(player);
+  }
+  playerDisconnect(player) {
+    console.log(player)
+    this.vue.onPlayerDisconnect(player);
+  }
+}
 
 export default {
   name: 'Play',
   components: {
     Board,
-    RoomView
+    WaitingView
   },
   data() { return {
     state: this.$store.state,
-    gameState: this.$store.state.game
+    gameState: this.$store.state.game,
+    roomHandler: new RoomHandler(this),
   }},
 
   created() {
-    console.log(this.gameState.state.isInPlay)
+    this.$store.commit("setRoomHandler",this.roomHandler)
+  },
+
+  methods: {
+    onRoomClosed(){
+      // not yet implemented
+    },
+    onPlayerConnect(){
+      console.log("new player!!!!!");
+    },
+    onHostDisconnect(){
+      console.log("lost host!");
+    },
+    onPlayerDisconnect(player){
+      console.log("lost player:"+player.nickname);
+      
+      this.$store.dispatch("publishNotif", new Notification({
+        msg: "lost player:"+player.nickname
+      }))
+    }
   }
 }
 </script>

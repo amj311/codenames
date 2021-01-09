@@ -1,6 +1,7 @@
 var createError = require('http-errors');
 var path = require('path');
 var cookieParser = require('cookie-parser');
+var bodyParser = require('body-parser');
 var lt = require ("localtunnel");
 var open = require ("open");
 
@@ -14,21 +15,23 @@ var cors = require('cors')
 let port = 3000;
 server.listen(port);
 
-(async () => {
-  const tunnel = await lt({
-    port,
-    subdomain: "bom-codenames"
-  });
- 
-  // the assigned public url for your tunnel
-  console.log("App on network: "+tunnel.url);
-  open(tunnel.url)
- 
-  tunnel.on('close', () => {
-    // tunnels are closed
-    console.log(`Network tunnel to port ${port} was closed.`)
-  });
-})();
+if (process.env.NODE_ENV == "production") {
+  (async () => {
+    const tunnel = await lt({
+      port,
+      subdomain: "bom-codenames"
+    });
+  
+    // the assigned public url for your tunnel
+    console.log("App on network: "+tunnel.url);
+    open(tunnel.url)
+  
+    tunnel.on('close', () => {
+      // tunnels are closed
+      console.log(`Network tunnel to port ${port} was closed.`)
+    });
+  })();
+}
 
 
 var corsOptions = {
@@ -38,8 +41,8 @@ var corsOptions = {
 }
 
 app.use(cors(corsOptions))
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'dist')));
 
@@ -58,16 +61,15 @@ function randomString(length) {
 
 // ROOMS
 const RoomManager = require('../model/server/GameRoomManager.js')
-let rooms = [];
+let rooms = new Map(); //Map<roomId,RoomManager>
 
 function newRoom(mode) {
-  // There is currently no function for removing rooms after they are created!
   let newRoomId;
   do {
     newRoomId = randomString(5);
-  } while ( rooms.filter( r => r.rid === newRoomId ).length > 0 )
+  } while ( rooms.has(newRoomId))
 
-  rooms.push(new RoomManager(newRoomId, mode))
+  rooms.set(newRoomId, new RoomManager(newRoomId, mode))
 
   return newRoomId;
 }
@@ -76,7 +78,9 @@ function newRoom(mode) {
 
 // ROUTES
 app.get('/api/rooms/:id', (req,res) => {
-  let roomMatch = rooms.filter(r => r.id === req.params.id)[0]
+  if (req.params.id == "all") return res.json(rooms.values())
+
+  let roomMatch = rooms.get(req.params.id)
 
   if (roomMatch) {
     console.log('Found requested room '+roomMatch.id)			
@@ -86,10 +90,45 @@ app.get('/api/rooms/:id', (req,res) => {
 })
 
 app.get('/api/newroom/:mode', (req,res) => {
+  console.log("new room requested")
   let newRoomId = newRoom(req.params.mode);
   console.log("Created new room: "+newRoomId)
   res.json({ok: true, rid: newRoomId})
 })
+
+app.delete('/api/closeroom/:id', (req,res) => {
+  let roomMatch = rooms.get(req.params.id)
+
+  if (roomMatch) {
+    console.log('Found requested room '+roomMatch.id)			
+    roomMatch.beforeClose();
+    rooms.delete(roomMatch.id)
+    res.sendStatus(200)
+  }
+  else {
+    console.log("Could not find room: "+roomMatch.id)
+    res.sendStatus(404)
+  }
+})
+
+app.get('/api/canrejoin/:roomId/:socketId', (req,res) => {
+  let roomId = req.params.roomId;
+  let socketId = req.params.socketId;
+  let canReconnect = false;
+  console.log("trying to reconnect: ",socketId)
+
+  let roomMatch = rooms.get(roomId)
+
+  if (roomMatch) {
+    console.log('Found requested room '+roomMatch.id)			
+    canReconnect = roomMatch.canReconnect(socketId);
+  }
+
+  res.json({ok: canReconnect})
+})
+
+
+
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -104,7 +143,7 @@ app.use(function(err, req, res, next) {
 
   // render the error page
   res.status(err.status || 500);
-  res.send('error');
+  res.send(err);
 });
 
 
@@ -115,20 +154,31 @@ socketio.on('connection', (socket) => {
   console.log("New socket connected: "+socket.id)
   socket.emit('msg','Message from server: Hi!')
 
-  socket.on('joinRoom', (roomId, cb) => {
+  socket.on('joinRoom', (roomId, userData, cb) => {
     console.log("requesting room id: "+roomId)
 
-    let roomMatch = rooms.filter(r => r.id === roomId)[0]
+    let roomMatch = rooms.get(roomId)
 
     if (roomMatch) {
       console.log('Found requested room '+roomMatch.id)			
-      roomMatch.addPlayer(socket, {})
+      roomMatch.addPlayer(socket, userData)
       cb();
     }
-    else console.log("Could not find room: "+roomId)
+    else {
+      console.log("Could not find room: "+roomId)
+      socket.emit('err',"Could not find room: "+roomId)
+    }
   })
 
-  socket.on('disconnect', () => {
-    console.log("Lost socket: "+socket.id)
+
+  socket.on('rejoinRoom', (roomId, socketId, cb) => {
+    let roomMatch = rooms.get(roomId)
+    let success = false;
+    if (roomMatch) {
+      console.log('Found requested room '+roomMatch.id)			
+      success = roomMatch.handleReturningPlayer(socket, socketId, cb)
+    }
+    if (!success) socket.emit('err',"Could not reconnect to room: "+roomId)
   })
+
 })

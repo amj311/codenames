@@ -5,6 +5,14 @@
     <StartView v-if="state.view == 'start'" />
     <PlayView v-else />
     <Modal />
+    <div id="notifsList">
+      <div class="notif-card ui-raised" v-for="notif in notifs" :key="notif.id" :class="notif.type">
+        <span class="notifMsg">{{notif.msg}}</span>
+        <span v-if="notif.aff" class="notifAff btn" @click="consumeNotif(notif.id,notif.aff.action)">{{notif.aff.txt}}</span>
+        <span v-if="notif.neg" class="notifNeg" @click="consumeNotif(notif.id,notif.neg.action)">{{notif.neg.txt}}</span>
+        <span v-if="!notif.sticky" class="notifClose" @click="closeNotif(notif.id)">&times;</span>
+      </div>
+    </div>
 
   </div>
 </template>
@@ -28,7 +36,22 @@ export default {
 
   data() { return ({
     state: this.$store.state,
-  })}
+  })},
+
+  methods: {
+    consumeNotif(id,action) {
+      this.$store.dispatch("consumeNotif",{id,action});
+    },
+    closeNotif(id) {
+      this.$store.dispatch("removeNotif",id);
+    }
+  },
+
+  computed: {
+    notifs() {
+      return this.state.notifs;
+    }
+  }
 }
 </script>
 
@@ -105,6 +128,47 @@ body::before {
   align-items: center;
   justify-content: space-between;
 }
+
+
+
+
+div#notifsList {
+  position: fixed;
+  top: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0 .5em;
+  width: 20em;
+  max-width: 100vw;
+  box-sizing: border-box;
+  animation: fade-in 300 linear;
+}
+
+.notif-card {
+  background: #fff;
+  padding: .7em;
+  margin: .25em 0;
+  border-radius: .5em;
+  display: flex;
+  text-align: left;
+}
+
+.notif-card.err {
+  color: #fff;
+  background: rgb(187, 34, 34);
+}
+
+span.notifMsg {
+  flex-grow: 1;
+}
+
+.notifClose {
+  user-select: none;
+  cursor:pointer;
+}
+
+
 
 input {
   font-size: .80em;
@@ -247,6 +311,12 @@ img.ui-raised {
 @keyframes pulse {
   from {transform: scale(1) }
   to {transform: scale(1.2) }
+}
+
+
+@keyframes fade-in {
+  from {opacity:0; }
+  to {opacity:1; }
 }
 
 

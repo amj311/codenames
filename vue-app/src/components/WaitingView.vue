@@ -87,14 +87,13 @@
 
   </div>
 
-
     <div id="settings" v-if="state.user.isHost || state.mode == 'remote'">
 
       <div id="joinInstructions" class="ui-block">
         <h3>How To Join</h3>
         <div style="text-align:center">
           <p>
-            Visit <b><a :href="appUrl" style="color:#0bf">{{appUrl}}</a></b>
+            Visit <b><a :href="appUrl" target="blank" style="color:#0bf">{{appUrl}}</a></b>
           </p>
           <div v-if="appUrlQr">
             <p>or scan this QR code:</p>
@@ -135,7 +134,7 @@
 
     
     <div id="bottomBar" class="ui-block">
-      <button v-if="state.user.isHost" class="inline ui-pressable ui-shiny" style="background: transparent; color: inherit;" @click="$store.commit('goToView', 'start')"><i class="material-icons">cancel</i>  Close Room</button>
+      <button v-if="state.user.isHost" class="inline ui-pressable ui-shiny" style="background: transparent; color: inherit;" @click="closeRoom"><i class="material-icons">cancel</i>  Close Room</button>
       <button v-else class="inline ui-pressable ui-shiny" style="background: transparent; color: inherit;" @click="leaveRoom"><i class="material-icons">cancel</i>Leave Room</button>
       
       <button id="play" v-if="codeMasters.length>0 && (this.state.user.isHost || this.state.user.isCaptain)" class="inline ui-pressable ui-shiny ui-raised" @click="startGame">PLAY!</button>
@@ -270,6 +269,10 @@ export default {
     leaveRoom() {
       this.$store.dispatch("resetToStart");
       this.$store.dispatch('emitUserData');
+    },
+
+    closeRoom() {
+      this.$store.dispatch("closeRoom");
     }
   },
 
@@ -386,7 +389,7 @@ img#joinQR {
 }
 
 .masterCard {
-  background: #f1f1f1;
+  background: #e6e6e6;
   display: inline-block;
   font-weight: bold;
   padding: .5em;
