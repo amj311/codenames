@@ -8,9 +8,8 @@
     "tls": false
   },
   "scripts": {
-    "serve": "export NODE_ENV=production && node server.js",
-    "server dev": "node server.js",
-    "dev": "vue-cli-service serve",
+    "server": "node server.js",
+    "vue dev": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint"
   },
