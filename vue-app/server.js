@@ -104,9 +104,9 @@ app.delete('/api/closeroom/:id', (req,res) => {
   let roomMatch = rooms.get(req.params.id)
 
   if (roomMatch) {
-    console.log('Found requested room '+roomMatch.id)			
     roomMatch.beforeClose();
     rooms.delete(roomMatch.id)
+    console.log('Deleting room '+roomMatch.id)
     res.sendStatus(200)
   }
   else {
@@ -119,13 +119,14 @@ app.get('/api/canrejoin/:roomId/:socketId', (req,res) => {
   let roomId = req.params.roomId;
   let socketId = req.params.socketId;
   let canReconnect = false;
-  console.log("trying to reconnect: ",socketId)
+  console.log("Checking if can reconnect: ",socketId)
 
   let roomMatch = rooms.get(roomId)
 
   if (roomMatch) {
     console.log('Found requested room '+roomMatch.id)			
     canReconnect = roomMatch.canReconnect(socketId);
+    console.log("Can reconnect: "+canReconnect);
   }
 
   res.json({ok: canReconnect})
@@ -179,8 +180,9 @@ socketio.on('connection', (socket) => {
     let roomMatch = rooms.get(roomId)
     let success = false;
     if (roomMatch) {
-      console.log('Found requested room '+roomMatch.id)			
+      console.log('Rejoining socket to '+roomMatch.id)			
       success = roomMatch.handleReturningPlayer(socket, socketId, cb)
+      console.log("Room accepts return: "+success);
     }
     if (!success) socket.emit('err',"Could not reconnect to room: "+roomId)
   })

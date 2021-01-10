@@ -25,9 +25,14 @@ export default new Vuex.Store({
     
     game: {
       state: null,
-      config: null,
+      config: {
+        numCardsSqrt:5,
+        numTeams:2,
+        numTeamCards:9,
+        numAssassins:1,
+        numBystanders:6,
+      },
 
-      layoutSqrFactor: 5,
       cards: [],
 
       teams: {
@@ -243,6 +248,8 @@ export default new Vuex.Store({
         let socket = state.socket;
         
         socket.emit('rejoinRoom', oldConn.roomId, oldConn.socketId, (userData:Object,gameData:Object,roomData:Object) => {
+          console.log("Reconnecting with data:",userData,roomData,gameData)
+
           state.user = userData;
           state.room = roomData;
           state.game = gameData;

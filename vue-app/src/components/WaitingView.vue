@@ -115,8 +115,8 @@
           <form v-if="state.user.isHost">
             <div id="totalCards" class="form-row">
               <label>Cards</label>
-              <input type="range" name="numCards" v-model="newGameSqrt" min="3" max="6">
-              <label style="width:1em;">{{newGameSqrt**2}}</label>
+              <input type="range" name="numCards" v-model="numCardsSqrt" min="3" max="6">
+              <label style="width:1em;">{{numCardsSqrt**2}}</label>
             </div>
             <div id="teamCards" class="form-row">
               <div>
@@ -168,11 +168,11 @@ export default {
     state: this.$store.state,
     gamePlayHandler: new RoomHandler(this),
     appUrl: new URL(window.location.href).origin,
-    newGameSqrt: null,
-    useTeam3: false,
+    numCardsSqrt: null,
+    numTeams: 2,
     numAssassins: null,
     numTeamCards: null,
-    numNeutralCards: null,
+    numBystanders: null,
     appUrlQr: null,
     ninjasImgs: this.$store.state.ninjasImgs,
   })},
@@ -215,29 +215,28 @@ export default {
     //just for testing
     this.$store.dispatch('updateRoomState', {players: this.testPlayers})
 
-    this.newGameSqrt = this.state.game.layoutSqrFactor;
-    this.numTeamCards = this.state.game.teams.teamOne.qty;
-    this.numAssassins = this.state.game.teams.assassin.qty;
-    this.calcNumNeutralCards();
+    this.numCardsSqrt = this.state.game.config.numCardsSqrt;
+    this.numTeamCards = this.state.game.config.numTeamCards;
+    this.numAssassins = this.state.game.config.numAssassins;
+    this.calcNumBystanders();
   },
 
   watch: {
     userTeamSelection() {
       
     },
-    newGameSqrt() {
-      this.calcNumNeutralCards()
-      this.$store.dispatch('updateGameState', {layoutSqrFactor: this.newGameSqrt})
+    numCardsSqrt() {
+      this.calcNumBystanders()
+      this.$store.dispatch('updateGameState', {config: this.config})
     },
     numTeamCards() {
       this.$store.commit('setTeamQty', {team: 'teamOne', qty: this.numTeamCards})
       this.$store.commit('setTeamQty', {team: 'teamTwo', qty: this.numTeamCards})
-      if (this.useTeam3) this.$store.commit('setTeamQty', {team: 'teamThree', qty: this.numTeamCards})
-      this.calcNumNeutralCards()
+      this.calcNumBystanders()
     },
     numAssassins() {
       this.$store.commit('setTeamQty', {team: 'assassin', qty: this.numAssassins})
-      this.calcNumNeutralCards()
+      this.calcNumBystanders()
     },
     maxCompTeamQty() {
       if (this.numTeamCards > this.maxCompTeamQty) this.numTeamCards = this.maxCompTeamQty;
@@ -246,23 +245,15 @@ export default {
 
 
   methods: {
-    calcNumNeutralCards() {
-      let numCompTeams = this.useTeam3 ? 3 : 2;
-      let numNeutral = this.newGameSqrt**2 - this.numAssassins - this.numTeamCards*numCompTeams;
-      this.$store.commit('setTeamQty', {team: 'bystander', qty: numNeutral})
-      this.numNeutralCards = numNeutral;
-      return numNeutral;
+    calcNumBystanders() {
+      let numBystanders = this.numCardsSqrt**2 - this.numAssassins - this.numTeamCards*this.numTeams;
+      this.$store.commit('setTeamQty', {team: 'bystander', qty: numBystanders})
+      this.numBystanders = numBystanders;
+      return numBystanders;
     },
 
     startGame() {
-      let config = {
-        numCardsSqrt: this.newGameSqrt,
-        numTeams: this.useTeam3 ? 3 : 2,
-        numTeamCards: this.numTeamCards,
-        numAssassins: this.numAssassins,
-        numBystanders: this.numNeutralCards,
-      }
-      this.$store.dispatch('invokeGameMethod',{method:"startGame",args:[config]})
+      this.$store.dispatch('invokeGameMethod',{method:"startGame",args:[this.config]})
     },
 
     leaveRoom() {
@@ -285,14 +276,8 @@ export default {
     },
 
     maxCompTeamQty() {
-      let availableCards = ((this.newGameSqrt**2) - this.numAssassins);
-      // let maxCompTeamQty = 0;
-      let numCompTeams = this.useTeam3 ? 3 : 2;
-      // while (maxCompTeamQty * numCompTeams <= availableCards-numCompTeams) {
-      //   maxCompTeamQty++
-      // }
-      // return maxCompTeamQty;
-      return Math.floor(availableCards / numCompTeams);
+      let availableCards = ((this.numCardsSqrt**2) - this.numAssassins);
+      return Math.floor(availableCards / this.numTeams);
     },
 
     previewCards() {
@@ -307,13 +292,13 @@ export default {
       return cards;
     },
 
-    cardWidth() { return Math.floor(100/this.newGameSqrt)+'%' },
+    cardWidth() { return Math.floor(100/this.numCardsSqrt)+'%' },
 
     codeMasters() {
       if (!this.$store.state.room.players) return [];
       return this.$store.state.room.players.filter(p=>p.isCaptain);
     },
-    
+
     userTeamSelection: {
       get() { return this.$store.state.user.teamCode },
       set(value) {
@@ -327,6 +312,16 @@ export default {
       set(value) {
         this.$store.dispatch('updateUserState',{isCaptain: value })
         this.$store.dispatch('emitUserData')
+      }
+    },
+
+    config() {
+      return {
+        numCardsSqrt: this.numCardsSqrt,
+        numTeamCards: this.numTeamCards,
+        numTeams: this.numTeams,
+        numBystanders: this.numBystanders,
+        numAssassins: this.numAssassins,
       }
     }
   }

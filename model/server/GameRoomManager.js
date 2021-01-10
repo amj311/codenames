@@ -70,15 +70,16 @@ class GameRoomManager {
         return players;
     }
 
-    handleLostSocket(socket) {
-        let sockUserPair = this.connections.get(socket.id);
-        console.log("Lost user: "+socket.id, sockUserPair.userData);
+    handleLostSocket(newSocket) {
+        let oldConn = this.connections.get(newSocket.id);
+        console.log("Lost user: "+newSocket.id, oldConn.userData);
 
-        this.connections.delete(socket.id);
-        this.lostConnections.set(socket.id,sockUserPair);
+        this.connections.delete(newSocket.id);
+        this.lostConnections.set(newSocket.id,oldConn);
+        if (oldConn.socketId != newSocket.id) this.setupPlayerSocket(newSocket);
 
-        if (sockUserPair.userData.isHost) this.emitToAllConnections('handleRoomUpdate', {method:"hostDisconnect",payload:sockUserPair.userData});
-        if (sockUserPair.userData.isPlayer) this.emitToAllConnections('handleRoomUpdate', {method:"playerDisconnect",payload:sockUserPair.userData});
+        if (oldConn.userData.isHost) this.emitToAllConnections('handleRoomUpdate', {method:"hostDisconnect",payload:oldConn.userData});
+        if (oldConn.userData.isPlayer) this.emitToAllConnections('handleRoomUpdate', {method:"playerDisconnect",payload:oldConn.userData});
 
         this.emitToAllConnections('updatePlayers', this.getPlayers());
     }
@@ -89,6 +90,7 @@ class GameRoomManager {
     }
 
     handleReturningPlayer(newSocket,oldSockId,cb) {
+        
         let oldConnPair = this.lostConnections.get(oldSockId);
         if (!oldConnPair) return false;
 
