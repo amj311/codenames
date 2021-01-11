@@ -413,7 +413,6 @@ function setupNewSocket(socket:any,context:any) {
         type:"err",
         msg: "You've been disconnected!. Trying to reconnect..."
       }))
-      let tryNotifId = context.state.notifs[context.state.notifs.length-1].id;
 
       setTimeout(()=>{
         context.dispatch("attemptReconnect",getUnclosedConn());

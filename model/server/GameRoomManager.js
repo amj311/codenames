@@ -83,7 +83,7 @@ class GameRoomManager {
 
         if (oldConn.userData.isCaptain) {
             this.game.setTeamCaptain(oldConn.userData.teamCode,null);
-            this.emitToAllConnections('updateGamePieces', this.game.teams);
+            this.emitToAllConnections('updateGamePieces', {teams:this.game.teams});
         }
         this.emitToAllConnections('updatePlayers', this.getPlayers());
     }
