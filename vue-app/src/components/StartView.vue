@@ -90,16 +90,25 @@ export default {
       })
     },
     joinGame() {
-      axios.get(this.apiUrl+'/api/rooms/'+this.roomToJoin.toLowerCase()).then( res=> {
-        if (!res.data.ok) {
-          this.$store.dispatch("publishNotif", new Notification({
-            type:"err",
-            msg: "Could not find room "+this.roomToJoin.toUpperCase()
-          }))
-        }
-        else {
-          this.$store.dispatch('joinGameRoom', res.data.rid);
-        }
+      let context = this;
+      this.$store.dispatch('openModal', {
+        msg: "Enter a nickname:",
+        form: 'nickname',
+        isValid: () => {return context.$store.state.user.nickname},
+        onNO: () => {},
+        onOK: () => {
+          axios.get(context.apiUrl+'/api/rooms/'+context.roomToJoin.toLowerCase()).then( res=> {
+            if (!res.data.ok) {
+              context.$store.dispatch("publishNotif", new Notification({
+                type:"err",
+                msg: "Could not find room "+context.roomToJoin.toUpperCase()
+              }))
+            }
+            else {
+              context.$store.dispatch('joinGameRoom', res.data.rid);
+            }
+          })
+        },
       })
     },
 
