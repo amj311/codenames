@@ -45,6 +45,7 @@
 
 <script>
 import Card from './Card.vue'
+import Notification from "../utils/Notification"
 
 class GameplayHandler {
   constructor(vue) {
@@ -88,7 +89,20 @@ export default {
   },
 
   computed: {
-    cardWidth() { return Math.floor(100/this.gameState.config.numCardsSqrt) }
+    cardWidth() { return Math.floor(100/this.gameState.config.numCardsSqrt) },
+
+    canFlip() {
+      if (this.state.user.isCaptain && this.gameState.teamOfTurn.name != this.gameState.teams[this.state.user.teamCode].name) {
+        this.$store.dispatch("publishNotif", new Notification({
+          type:"err",
+          msg:"It is not your team's turn yet!"
+        }))
+        return false;
+      }
+      return (
+        this.state.user.isCaptain &&
+        this.gameState.state.canRevealCard
+    )}
   },
 
   methods: {
@@ -142,7 +156,7 @@ export default {
     },
 
     initCardFlip(e) {
-      if(this.state.user.isCaptain && this.gameState.state.canRevealCard) {
+      if(this.canFlip) {
         this.$store.dispatch('invokeGameMethod',{method:"revealCard",args:[e.card.id]})
       }
     },
@@ -213,27 +227,7 @@ export default {
         timeout: 3000,
       })
 
-      // this.emitBoard();
     },
-
-    // giveHint() {
-    //   let context = this;
-    //   this.$store.dispatch('openModal', {
-    //     msg: "Write a hint for your team!",
-    //     img: {path: this.gameState.teamOfTurn.img, w:'5em', h:'5em'},
-    //     form: 'turnHint',
-    //     onOK() {
-    //       context.$store.dispatch('updateGameState', {
-    //         canPlay: true,
-    //         roundStatus: "guessing",
-    //       });
-    //     },
-    //     onEX: () => {return},
-    //     onNO: () => {return},
-    //     isValid: () => { return context.gameState.turnHint },
-    //     alert: "You must provide a hint!",
-    //   })
-    // },
 
     removeAnim(id){
       this.anims = this.anims.filter(a => a.id != id)

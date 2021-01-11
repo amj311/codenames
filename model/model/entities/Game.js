@@ -35,7 +35,10 @@ module.exports = class Game {
     }
 
     startGame(config) {
-        if (!this.state.canStartGame) return;
+        if (!this.state.canStartGame) {
+            console.log("Cannot start game from this state!")
+            return;
+        }
         this.configure(config);
         this.cards = new GenerateCardsService().generateCards(Object.values(this.teams));
         this.state = GameStates.guessing;
@@ -90,6 +93,10 @@ module.exports = class Game {
         return new RevealCardResponse(card,wasTeamCard,this.cards,this.teamOfTurn,this.winner,this.state)
     };
 
+    setTeamCaptain(teamCode,captain) {
+        this.teams[teamCode].captain = captain;
+        return this.teams;
+    }
     
     getCardTeam(card) {
         let team = Array.from(Object.values(this.teams)).find(t => t.id == card.teamId);

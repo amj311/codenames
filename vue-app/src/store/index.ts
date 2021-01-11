@@ -54,10 +54,11 @@ export default new Vuex.Store({
     },
 
     user: {
+      id: Date.now()+Math.random()*(Math.random()+1),
       isHost: false,
       isPlayer: false,
       isCaptain: false,
-      teamCode: 'bystander',
+      teamCode: null,
       nickname: '',
     },
 
@@ -101,6 +102,13 @@ export default new Vuex.Store({
     setTeamQty(state, props:{team: string, qty:number}) {
       state.game.teams[props.team].qty = Number(props.qty);
       console.log(props.team+" qty is now: "+state.game.teams[props.team].qty)
+    },
+    setTeamCaptain(state, props:{team: string, captain:any}) {
+      console.log(props.captain)
+      Array.from(Object.values(state.game.teams)).forEach((t:any)=>{
+        if (props.captain && t.captain && t.captain.name == props.captain.name) t.captain = null;
+      })
+      state.game.teams[props.team].captain = props.captain;
     },
     resetRound(state) {
       state.game.turnHint = "";
@@ -171,7 +179,7 @@ export default new Vuex.Store({
         isHost: false,
         isPlayer: false,
         isCaptain: false,
-        teamCode: 'bystander',
+        teamCode: null,
         nickname: '',
       }
       context.commit('goToView', 'start')

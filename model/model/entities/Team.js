@@ -6,6 +6,7 @@ module.exports = class Team {
         this.isCompetitor = isCompetitor;
         this.pts = 0;
         this.qty = qty;
+        this.captain = null;
     }
 
     resetPoints() {
