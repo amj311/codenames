@@ -88,7 +88,7 @@ export default {
   },
 
   computed: {
-    cardWidth() { return Math.floor(100/this.gameState.layoutSqrFactor) }
+    cardWidth() { return Math.floor(100/this.gameState.config.numCardsSqrt) }
   },
 
   methods: {
