@@ -53,8 +53,10 @@ export default {
     onRoomClosed(){
       // not yet implemented
     },
-    onPlayerConnect(){
-      console.log("new player!!!!!");
+    onPlayerConnect(player){
+      this.$store.dispatch("publishNotif", new Notification({
+        msg: player.nickname+" joined!"
+      }))
     },
     onHostDisconnect(){
       console.log("lost host!");
