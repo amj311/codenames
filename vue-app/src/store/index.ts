@@ -1,10 +1,14 @@
 import Vue from 'vue'
 import Vuex from 'vuex'
 import socketio from 'socket.io-client'
+import axios from 'axios'
+import Notification from '../utils/Notification'
 
 Vue.use(Vuex)
 
 let gameplayHandler:any;
+let roomHandler:any;
+
 
 export default new Vuex.Store({
   state: {
@@ -21,9 +25,14 @@ export default new Vuex.Store({
     
     game: {
       state: null,
-      config: null,
+      config: {
+        numCardsSqrt:5,
+        numTeams:2,
+        numTeamCards:9,
+        numAssassins:1,
+        numBystanders:6,
+      },
 
-      layoutSqrFactor: 5,
       cards: [],
 
       teams: {
@@ -68,7 +77,10 @@ export default new Vuex.Store({
       onNO: null,
       closeTimeout: function() {},
       isValid: function() { return true },
-    }
+    },
+
+    notifs: [],
+
   },
   mutations: {
     goToView(state: any, view:string) {
@@ -137,9 +149,12 @@ export default new Vuex.Store({
     },
 
     setGameplayHandler(state, handler) {
-      console.log("new handler",handler)
       gameplayHandler = handler;
-    }
+    },
+    setRoomHandler(state, handler) {
+      roomHandler = handler;
+    },
+
   },
 
 
@@ -160,7 +175,13 @@ export default new Vuex.Store({
         nickname: '',
       }
       context.commit('goToView', 'start')
-      
+      removeUnclosedConn();
+      context.state.socket.disconnect()
+      context.state.socket = null;
+    },
+
+    closeRoom(context) {
+      axios.delete(context.state.apiUrl+"/api/closeroom/"+context.state.room.id)
     },
 
     updateGameState(context, props) {
@@ -176,60 +197,88 @@ export default new Vuex.Store({
 
 
 
-    setupSocket(context:any, options:{rid:string, cb: any}) {
+    connectToRoom(context:any, options:{rid:string, cb: any}) {
+      removeUnclosedConn();
+
       let state = context.state;
-      if (!state.socket) state.socket = socketio(context.state.apiUrl);
+      state.socket = setupNewSocket(state.socket,context);
       let socket = state.socket;
-      console.log('joinRoom '+options.rid)
-
-      socket.on('msg', (msg: string) => console.log(msg));
-      socket.on('updateGamePieces', (props:any)=> {
-        context.dispatch('updateGameState', props)
-      })
-      socket.on('updateRoom', (props:any)=> {
-        console.log('updating room: ',props)
-        context.dispatch('updateRoomState', props)
-      })
-      socket.on('updatePlayers', (props:any)=> {
-        context.dispatch('updateRoomState', {players: props})
-        for (let teamCode of Object.keys(context.state.game.teams)) {
-          let members = this.state.room.players.filter( (p:any) => (p.teamCode == teamCode) || (teamCode == 'bystander' && !p.teamCode));
-          context.commit('updateTeamMembers', { teamCode, members })
-        }
-      })
-      socket.on('handleGameplay', (props:{method:string,payload:any})=> {
-        if (gameplayHandler) gameplayHandler[props.method](props.payload);
-      })
-
-
       
-      socket.emit('joinRoom',options.rid, () => {
+      socket.emit('joinRoom',options.rid, state.user, () => {
         state.room.id = options.rid;
-        console.log("I'm connected to room: "+options.rid)
+        setUnclosedConn(socket.id,state.room.id);
         options.cb();
       })
-
     },
+    
     setupGameRoom(context, props: {id:string, mode: string}) {
       context.state.user.isHost = true;
       context.state.user.isPlayer = (props.mode != 'party');
-      console.log('setupGameRoom '+props.id)
 
-      context.dispatch('setupSocket', {rid: props.id, cb: () => {
+      context.dispatch('connectToRoom', {rid: props.id, cb: () => {
         context.dispatch('updateRoomState', props)
         context.commit('goToView', 'room')
       }});
-
     },
     joinGameRoom(context, rid:string) {
       context.state.user.isHost = false;
       context.state.user.isPlayer = true;
+      
       console.log('joinGameRoom '+rid)
-      context.dispatch('setupSocket', {rid, cb: () => {
+      context.dispatch('connectToRoom', {rid, cb: () => {
         context.dispatch('updateRoomState', rid)
         context.commit('goToView', 'room')
       }});
     },
+
+    async attemptReconnect(context,oldConn) {
+      let res = await axios.get(context.state.apiUrl+"/api/canrejoin/"+oldConn.roomId+"/"+oldConn.socketId).then(res=>res.data)
+
+      console.log("Trying to reconnect: ",oldConn)
+
+      context.dispatch("publishNotif", new Notification({
+        msg: `Trying to reconnect to room ${oldConn.roomId.toUpperCase()}`
+      }))
+      let tryNotifId = context.state.notifs[context.state.notifs.length-1].id;
+
+      if(res.ok) {
+        removeUnclosedConn();
+
+        let state = context.state;
+        if (!state.socket) state.socket = setupNewSocket(state.socket,context);
+        let socket = state.socket;
+        
+        socket.emit('rejoinRoom', oldConn.roomId, oldConn.socketId, (userData:Object,gameData:Object,roomData:Object) => {
+          console.log("Reconnecting with data:",userData,roomData,gameData)
+
+          state.user = userData;
+          state.room = roomData;
+          state.game = gameData;
+
+          setUnclosedConn(socket.id,state.room.id);
+
+          context.dispatch("removeNotif", tryNotifId);
+          context.dispatch("publishNotif", new Notification({
+            msg: "Reconnected to room "+context.getters.roomId
+          }))
+          context.commit('goToView', 'room')
+
+        })  
+      }
+
+      
+      else {
+        context.dispatch("removeNotif", tryNotifId);
+
+        context.dispatch("publishNotif", new Notification({
+          type:"err",
+          msg: `Reconnect failed.`
+        }))
+        removeUnclosedConn();
+        context.dispatch("resetToStart");
+      }
+    },
+
     emitUserData(context) {
       context.state.socket.emit('updateUserData', context.state.user)
     },
@@ -269,46 +318,101 @@ export default new Vuex.Store({
       window.clearTimeout(context.state.modal.closeTimeout);
     },
 
+    publishNotif(context, notif) {
+      context.state.notifs.push(notif);
+      if (!notif.sticky) setTimeout(()=>context.dispatch("removeNotif",notif.id), 5000)
+    },
 
-    
-    generateNewCards(context) {
-      context.commit('clearBoard');
-      let openCardIdxs = [];
-      let usedWordIdxs = [];
-      let numCards: number = context.state.game.layoutSqrFactor ** 2;
-      let teams = Object.values(context.state.game.teams);
-      console.log(numCards)
-      console.log(context.state.game.teams)
-      for (let i = 0; i < numCards; i++) openCardIdxs.push(i);
-
-      do {
-        let randIdx: number = openCardIdxs[Math.floor(Math.random()*openCardIdxs.length)];
-        if (openCardIdxs.lastIndexOf(randIdx) < 0) continue;
-        openCardIdxs = openCardIdxs.filter(idx => idx != randIdx);
-        
-        let wordIdx;
-        do {
-          wordIdx = Math.floor(Math.random()*context.state.wordSet.length);
-        } while (usedWordIdxs.lastIndexOf(wordIdx) != -1);
-        usedWordIdxs.push(wordIdx);
-
-        let team: any;
-        let teamCap: number = 0;
-        let teamIdx = 0;
-        do {
-          team = teams[teamIdx];
-          teamCap = Number(teamCap) + Number(team.qty);
-          teamIdx++;
-        } while (teamCap <= randIdx)
-
-        let card = {word: context.state.wordSet[wordIdx], color: team.color, flipped: false, team };
-        context.state.game.cards.push( card )
-        // team.deck.push(card)
-
-      } while (openCardIdxs.length > 0);
+    removeNotif(context,notifId) {
+      context.state.notifs = context.state.notifs.filter((n:any)=>n.id!=notifId);
+    },
+    consumeNotif(context,props:{id:any,action:any}) {
+      props.action();
+      context.dispatch("removeNotif",props.id)
     },
 
   },
   modules: {
+  },
+
+  getters: {
+    roomId: state => state.room.id.toUpperCase()
   }
 })
+
+
+function setupNewSocket(socket:any,context:any) {
+  let state = context.state;
+  if (!socket) socket = socketio(context.state.apiUrl);
+
+  
+  socket.on('connect', () => {
+    let oldConnection = getUnclosedConn();
+    if (oldConnection) {
+      console.log("Can try reconnecting to old connection.")
+      context.dispatch("attemptReconnect",oldConnection);
+    }
+  });
+
+  socket.on('msg', (msg: string) => console.log("Message from socket: "+msg));
+  socket.on('err', (msg: string) => {
+    console.log("Error from socket: "+msg);
+    context.dispatch("publishNotif", new Notification({msg}))
+  });
+
+  socket.on('updateGamePieces', (props:any)=> {
+    context.dispatch('updateGameState', props)
+  })
+  socket.on('updateRoom', (props:any)=> {
+    context.dispatch('updateRoomState', props)
+  })
+  socket.on('updatePlayers', (props:any)=> {
+    context.dispatch('updateRoomState', {players: props})
+    for (let teamCode of Object.keys(state.game.teams)) {
+      let members = state.room.players.filter( (p:any) => (p.teamCode == teamCode) || (teamCode == 'bystander' && !p.teamCode));
+      context.commit('updateTeamMembers', { teamCode, members })
+    }
+  })
+  socket.on('handleGameplay', (props:{method:string,payload:any})=> {
+    if (gameplayHandler && gameplayHandler[props.method]) gameplayHandler[props.method](props.payload);
+    else console.warn("Gameplayhandler does not have method "+props.method)
+  })
+  socket.on('handleRoomUpdate', (props:{method:string,payload:any})=> {
+    if (roomHandler && roomHandler[props.method]) roomHandler[props.method](props.payload);
+    else console.warn("Roomhandler does not have method "+props.method)
+  })
+
+  socket.on('roomClosed', ()=> {
+    console.log("The game was closed.")
+    context.dispatch("publishNotif", new Notification({
+      type:"err",
+      msg: "The room was closed."
+    }))
+    context.dispatch("resetToStart")
+  })
+
+  socket.on('disconnect', ()=> {
+    if(getUnclosedConn()) {
+      context.dispatch("publishNotif", new Notification({
+        type:"err",
+        msg: "You've been disconnected!. Trying to reconnect..."
+      }))
+    }
+  })
+
+  return socket;
+}
+
+
+function setUnclosedConn(socketId:string,roomId:string) {
+  let connectionData = {socketId,roomId}
+  sessionStorage.setItem("unclosedConnection",JSON.stringify(connectionData))
+}
+function getUnclosedConn() {
+  let json = sessionStorage.getItem("unclosedConnection")
+  console.log("Unclosed connection:",json)
+  return json? JSON.parse(json) : null;
+}
+function removeUnclosedConn() {
+  return sessionStorage.removeItem("unclosedConnection")
+}

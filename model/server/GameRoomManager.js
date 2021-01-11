@@ -9,21 +9,24 @@ class GameRoomManager {
 
         this.game = new Game();
         
-        this.connections = [];
+        this.connections = new Map(); //Map<SocketID,{socket,userData}>
+        this.lostConnections = new Map(); //Map<SocketID,{socket,userData}>
         this.host = null;
     }
 
     addPlayer(socket, userData) {
-        this.connections.push({socket,userData});
-        if (userData.isHost) this.host = this.connections[this.connections.length-1];
-        socket.join(this.id);
-        socket.emit('updateRoom', this.getRoomSummary())
-        socket.emit('updateGamePieces', this.game)
-
-        this.setupPlayerSocket(socket);
+        if (userData.isHost) this.host = this.connections.get(socket.id);
+        this.setupPlayerSocket(socket,userData,()=>{
+            this.emitToAllConnections('handleRoomUpdate', {method:"playerConnect",payload:userData});
+            socket.emit('updateRoom', this.getRoomSummary())
+            socket.emit('updateGamePieces', this.game)    
+        });
     }
 
-    setupPlayerSocket(socket) {
+    setupPlayerSocket(socket,userData,cb) {
+        console.log("setting up socket "+socket.id)
+        this.connections.set(socket.id,{socket,userData});
+
         socket.on('invokeGameMethod', (method,args) => {
             let payload = this.game[method](...args);
             this.emitToAllConnections("handleGameplay", {method, payload});
@@ -38,11 +41,18 @@ class GameRoomManager {
         })
 
         socket.on('updateUserData', (newUserData) => {
-            this.connections.forEach(c => {
+            Array.from(this.connections.values()).forEach(c => {
                 if (c.socket.id == socket.id) c.userData = newUserData;
             })
             this.emitToAllConnections('updatePlayers', this.getPlayers());
         })
+
+        
+        socket.on('disconnect', () => {
+            this.handleLostSocket(socket)
+        })
+
+        cb();
     }
 
     getRoomSummary() {
@@ -55,14 +65,53 @@ class GameRoomManager {
 
     getPlayers() {
         let players = [];
-        this.connections.forEach(c => {
+        Array.from(this.connections.values()).forEach(c => {
             if (c.userData.isPlayer) players.push(c.userData);
         })
         return players;
     }
 
+    handleLostSocket(newSocket) {
+        let oldConn = this.connections.get(newSocket.id);
+        console.log("Lost user: "+newSocket.id, oldConn.userData);
+
+        this.connections.delete(newSocket.id);
+        this.lostConnections.set(newSocket.id,oldConn);
+
+        if (oldConn.userData.isHost) this.emitToAllConnections('handleRoomUpdate', {method:"hostDisconnect",payload:oldConn.userData});
+        if (oldConn.userData.isPlayer) this.emitToAllConnections('handleRoomUpdate', {method:"playerDisconnect",payload:oldConn.userData});
+
+        this.emitToAllConnections('updatePlayers', this.getPlayers());
+    }
+
+    canReconnect(socketId) {
+        console.log(socketId)
+        return this.lostConnections.has(socketId);
+    }
+
+    handleReturningPlayer(newSocket,oldSockId,cb) {        
+        let oldConnPair = this.lostConnections.get(oldSockId);
+        if (!oldConnPair) return false;
+
+        this.lostConnections.delete(oldSockId);
+
+        this.setupPlayerSocket(newSocket,oldConnPair.userData,()=>{
+            cb(oldConnPair.userData,this.game,this.getRoomSummary())
+
+            if (oldConnPair.userData.isHost) this.emitToAllConnections('handleRoomUpdate', {method:"hostReconnect",payload:oldConnPair.userData});
+            if (oldConnPair.userData.isPlayer) this.emitToAllConnections('handleRoomUpdate', {method:"playerReconnect",payload:oldConnPair.userData});
+    
+            this.emitToAllConnections('updatePlayers', this.getPlayers());    
+        })
+        return true;
+    }
+
+    beforeClose() {
+        this.emitToAllConnections('roomClosed');
+    }
+
     emitToAllConnections(action, data) {
-        this.connections.forEach(c => {
+        Array.from(this.connections.values()).forEach(c => {
             c.socket.emit(action, data);
         })
     }

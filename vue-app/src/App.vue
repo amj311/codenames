@@ -5,6 +5,14 @@
     <StartView v-if="state.view == 'start'" />
     <PlayView v-else />
     <Modal />
+    <div id="notifsList">
+      <div class="notif-card ui-raised" v-for="notif in notifs" :key="notif.id" :class="notif.type">
+        <div class="notifMsg">{{notif.msg}}</div>
+        <div v-if="notif.aff" class="notifAff button inline ui-shiny" @click="consumeNotif(notif.id,notif.aff.action)">{{notif.aff.txt}}</div>
+        <div v-if="notif.neg" class="notifNeg button inline" @click="consumeNotif(notif.id,notif.neg.action)">{{notif.neg.txt}}</div>
+        <div v-if="!notif.sticky" class="notifClose" @click="closeNotif(notif.id)">&times;</div>
+      </div>
+    </div>
 
   </div>
 </template>
@@ -28,7 +36,22 @@ export default {
 
   data() { return ({
     state: this.$store.state,
-  })}
+  })},
+
+  methods: {
+    consumeNotif(id,action) {
+      this.$store.dispatch("consumeNotif",{id,action});
+    },
+    closeNotif(id) {
+      this.$store.dispatch("removeNotif",id);
+    }
+  },
+
+  computed: {
+    notifs() {
+      return this.state.notifs;
+    }
+  }
 }
 </script>
 
@@ -106,6 +129,54 @@ body::before {
   justify-content: space-between;
 }
 
+
+
+
+div#notifsList {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0 .5em;
+  width: 20em;
+  max-width: 100vw;
+  box-sizing: border-box;
+  animation: fade-in 300 linear;
+}
+
+.notif-card {
+  background: #fff;
+  padding: .7em;
+  margin: .25em 0;
+  border-radius: .5em;
+  display: flex;
+  text-align: left;
+  align-items: center;
+}
+.notif-card.err {
+  color: #fff;
+  background: rgb(196, 61, 61);
+}
+
+.notifMsg {
+  flex-grow: 1;
+  padding-right: 1em;
+}
+.notif-card .button {
+  border-radius: .4em;
+}
+div.notifNeg {
+  background: #fff;
+  color: #555;
+}
+div.notifClose {
+  user-select: none;
+  cursor:pointer;
+}
+
+
+
 input {
   font-size: .80em;
   padding: .25em;
@@ -155,7 +226,7 @@ input[type="range"] {
 }
 
 
-button {
+button, .button {
   border: none;
   padding: .5em 1em;
   font-weight: bold;
@@ -165,12 +236,14 @@ button {
   display: inline-flex;
   align-items: center;
   font-size: 1em;
+  user-select: none;
+  cursor:pointer;
 }
-button.inline {
+button.inline, .button.inline {
   display: inline-flex;
   margin: 0;
-  padding: .8em 1em;
-  font-size: .75em;
+  padding: .5em .5em;
+  font-size: .8em;
 }
 
 i.material-icons {
@@ -247,6 +320,12 @@ img.ui-raised {
 @keyframes pulse {
   from {transform: scale(1) }
   to {transform: scale(1.2) }
+}
+
+
+@keyframes fade-in {
+  from {opacity:0; }
+  to {opacity:1; }
 }
 
 

@@ -51,6 +51,7 @@
 
 <script>
 import axios from 'axios'
+import Notification from '../utils/Notification'
 
 export default {
   name: 'Start',
@@ -63,6 +64,11 @@ export default {
     newGameMode: 'party',
     roomToJoin: '',
   })},
+
+  mounted() {
+    this.checkForReconnection();
+  },
+
   methods: {
     openMenu(menu) {
       this.showMenu = true;
@@ -76,15 +82,51 @@ export default {
       axios.get(this.apiUrl+'/api/newroom/'+this.newGameMode).then( res=> {
         this.$store.dispatch('setupGameRoom', {id: res.data.rid, mode: this.newGameMode});
       }).catch( err => {
-        console.log(err)
+        console.log(err);
+        this.$store.dispatch("publishNotif", new Notification({
+            type:"err",
+            msg: "Server Error"
+          }))
       })
     },
     joinGame() {
       axios.get(this.apiUrl+'/api/rooms/'+this.roomToJoin.toLowerCase()).then( res=> {
-        // this.$store.dispatch('setupGameRoom', {id: res.data.rid, mode: this.newGameMode});
-        this.$store.dispatch('joinGameRoom', res.data.rid);
-        console.log(res.data.rid)
+        if (!res.data.ok) {
+          this.$store.dispatch("publishNotif", new Notification({
+            type:"err",
+            msg: "Could not find room "+this.roomToJoin.toUpperCase()
+          }))
+        }
+        else {
+          this.$store.dispatch('joinGameRoom', res.data.rid);
+        }
       })
+    },
+
+    checkForReconnection() {
+      let json = sessionStorage.getItem("unclosedConnection")
+      let oldConn = json? JSON.parse(json) : null;
+      if(!oldConn) return;
+
+
+      axios.get(this.apiUrl+'/api/canrejoin/'+oldConn.roomId+"/"+oldConn.socketId).then( res=> {
+        if (res.data.ok) {
+          let store = this.$store;
+          store.dispatch("publishNotif", new Notification({
+            sticky:true,
+            msg: `Would you like to reconnect to room ${oldConn.roomId.toUpperCase()}?`,
+            aff: {
+              txt: "Yes",
+              action: ()=>store.dispatch("attemptReconnect",oldConn)
+            },
+            neg: {
+              txt: "No",
+              action: ()=>sessionStorage.removeItem("unclosedConnection")
+            }
+          }))
+        }
+      })
+
     }
   }
 }
