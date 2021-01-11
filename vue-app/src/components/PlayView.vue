@@ -54,6 +54,7 @@ export default {
       // not yet implemented
     },
     onPlayerConnect(player){
+      if (player.nickname === this.state.user.nickname) return;
       this.$store.dispatch("publishNotif", new Notification({
         msg: player.nickname+" joined!"
       }))
