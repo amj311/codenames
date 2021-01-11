@@ -15,19 +15,18 @@ class GameRoomManager {
     }
 
     addPlayer(socket, userData) {
-        this.connections.set(socket.id,{socket,userData});
         if (userData.isHost) this.host = this.connections.get(socket.id);
-        socket.join(this.id);
-
-        this.emitToAllConnections('handleRoomUpdate', {method:"playerConnect",payload:userData});
-
-        this.setupPlayerSocket(socket);
-
-        socket.emit('updateRoom', this.getRoomSummary())
-        socket.emit('updateGamePieces', this.game)
+        this.setupPlayerSocket(socket,userData,()=>{
+            this.emitToAllConnections('handleRoomUpdate', {method:"playerConnect",payload:userData});
+            socket.emit('updateRoom', this.getRoomSummary())
+            socket.emit('updateGamePieces', this.game)    
+        });
     }
 
-    setupPlayerSocket(socket) {
+    setupPlayerSocket(socket,userData,cb) {
+        console.log("setting up socket "+socket.id)
+        this.connections.set(socket.id,{socket,userData});
+
         socket.on('invokeGameMethod', (method,args) => {
             let payload = this.game[method](...args);
             this.emitToAllConnections("handleGameplay", {method, payload});
@@ -52,6 +51,8 @@ class GameRoomManager {
         socket.on('disconnect', () => {
             this.handleLostSocket(socket)
         })
+
+        cb();
     }
 
     getRoomSummary() {
@@ -76,7 +77,6 @@ class GameRoomManager {
 
         this.connections.delete(newSocket.id);
         this.lostConnections.set(newSocket.id,oldConn);
-        if (oldConn.socketId != newSocket.id) this.setupPlayerSocket(newSocket);
 
         if (oldConn.userData.isHost) this.emitToAllConnections('handleRoomUpdate', {method:"hostDisconnect",payload:oldConn.userData});
         if (oldConn.userData.isPlayer) this.emitToAllConnections('handleRoomUpdate', {method:"playerDisconnect",payload:oldConn.userData});
@@ -89,20 +89,20 @@ class GameRoomManager {
         return this.lostConnections.has(socketId);
     }
 
-    handleReturningPlayer(newSocket,oldSockId,cb) {
-        
+    handleReturningPlayer(newSocket,oldSockId,cb) {        
         let oldConnPair = this.lostConnections.get(oldSockId);
         if (!oldConnPair) return false;
 
         this.lostConnections.delete(oldSockId);
-        this.connections.set(newSocket.id,{socket: newSocket,userData:oldConnPair.userData})
 
-        cb(oldConnPair.userData,this.game,this.getRoomSummary())
+        this.setupPlayerSocket(newSocket,oldConnPair.userData,()=>{
+            cb(oldConnPair.userData,this.game,this.getRoomSummary())
 
-        if (oldConnPair.userData.isHost) this.emitToAllConnections('handleRoomUpdate', {method:"hostReconnect",payload:oldConnPair.userData});
-        if (oldConnPair.userData.isPlayer) this.emitToAllConnections('handleRoomUpdate', {method:"playerReconnect",payload:oldConnPair.userData});
-
-        this.emitToAllConnections('updatePlayers', this.getPlayers());
+            if (oldConnPair.userData.isHost) this.emitToAllConnections('handleRoomUpdate', {method:"hostReconnect",payload:oldConnPair.userData});
+            if (oldConnPair.userData.isPlayer) this.emitToAllConnections('handleRoomUpdate', {method:"playerReconnect",payload:oldConnPair.userData});
+    
+            this.emitToAllConnections('updatePlayers', this.getPlayers());    
+        })
         return true;
     }
 

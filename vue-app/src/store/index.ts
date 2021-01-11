@@ -92,7 +92,7 @@ export default new Vuex.Store({
 
       for (let key of Object.keys(options.props)) {
         if (stateKeys.lastIndexOf(key) >= 0) state[options.object][key] = options.props[key];
-        else console.error("state."+options.object+" has no property " + key)
+        // else console.error("state."+options.object+" has no property " + key)
       }
     },
     updateTeamMembers(state, props:{teamCode:string,members:any}) {
@@ -312,43 +312,6 @@ export default new Vuex.Store({
       context.state.modal.msg = "";
       context.state.modal.onOK = context.state.modal.onNO = context.state.modal.onEX = context.state.modal.img = context.state.modal.form = null;
       window.clearTimeout(context.state.modal.closeTimeout);
-    },
-
-
-    
-    generateNewCards(context) {
-      context.commit('clearBoard');
-      let openCardIdxs = [];
-      let usedWordIdxs = [];
-      let numCards: number = context.state.game.layoutSqrFactor ** 2;
-      let teams = Object.values(context.state.game.teams);
-      for (let i = 0; i < numCards; i++) openCardIdxs.push(i);
-
-      do {
-        let randIdx: number = openCardIdxs[Math.floor(Math.random()*openCardIdxs.length)];
-        if (openCardIdxs.lastIndexOf(randIdx) < 0) continue;
-        openCardIdxs = openCardIdxs.filter(idx => idx != randIdx);
-        
-        let wordIdx;
-        do {
-          wordIdx = Math.floor(Math.random()*context.state.wordSet.length);
-        } while (usedWordIdxs.lastIndexOf(wordIdx) != -1);
-        usedWordIdxs.push(wordIdx);
-
-        let team: any;
-        let teamCap: number = 0;
-        let teamIdx = 0;
-        do {
-          team = teams[teamIdx];
-          teamCap = Number(teamCap) + Number(team.qty);
-          teamIdx++;
-        } while (teamCap <= randIdx)
-
-        let card = {word: context.state.wordSet[wordIdx], color: team.color, flipped: false, team };
-        context.state.game.cards.push( card )
-        // team.deck.push(card)
-
-      } while (openCardIdxs.length > 0);
     },
 
     publishNotif(context, notif) {
