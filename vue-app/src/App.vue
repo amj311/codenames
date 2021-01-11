@@ -90,7 +90,6 @@ body::before {
   left: 0;
   width: 100%;
   min-height: 100vh;
-  padding: 1rem;
   box-sizing: border-box;
   display: flex;
   align-content: center;

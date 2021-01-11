@@ -49,7 +49,6 @@ export default new Vuex.Store({
       roundStatus: 'room',
       winner: null,
       turnHint: "",
-      turnGuesses: 1,
       usedGuesses: 0,
     },
 
