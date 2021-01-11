@@ -25,9 +25,13 @@
     <div id="codeMasterDisplay" class="ui-block" v-if="state.user.isHost">
       <h3>Codemasters</h3>
       <div v-if="codeMasters.length>0">
-        <div class="masterCard ui-shiny ui-raised" v-for="master in codeMasters" :key="master.nickname">
-          <!-- <img :src="gameState.teams.bystander.img"> -->
-          <div>{{master.nickname}}</div>
+        <div id="teamLists">
+          <div class="teamList" v-for="teamData in codeMasters" :key="teamData.teamId">
+            <div class="playerCard ui-shiny" v-if="teamData.captain">
+              <img :src="state.game.teams[teamData.teamId].img">
+              <div>{{teamData.captain.nickname}}</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -49,38 +53,25 @@
           </label>
           <input type="checkbox" id="captainStatus" v-model="userCaptainStatus" hidden>
         </div>
-      </div>
 
-      <!-- FOR FULL REMOTE -->
-      <!-- <h3>Choose Your Team</h3>
-      <div class="form-row" id="teamSelect">
-        <div v-for="teamCode in playableTeamCodes" :key="teamCode">
-          <input type="radio" :id="teamCode" v-model="userTeamSelection" :value="teamCode" hidden>
-          <label
-            :for="teamCode"
-            class="ui-shiny ui-raised"
-            :class="{'ui-pressable': userTeamSelection != teamCode}"
-            :style="{'background-image': `url(${state.game.teams[teamCode].img})`}" width="50" />
+      <div v-if="state.user.isCaptain">
+        <h3>Choose Your Team</h3>
+        <div class="form-row" id="teamSelect">
+          <div v-for="teamCode in teamCaptainOptions" :key="teamCode">
+            <input type="radio" :id="teamCode" v-model="userTeamSelection" :value="teamCode" hidden>
+            <label
+              :for="teamCode"
+              class="ui-pressable ui-shiny ui-raised"
+              :disabled="state.game.teams[teamCode].captain"
+              :style="{'background-image': `url(${state.game.teams[teamCode].img})`}" width="50" />
+          </div>
+        </div>
+        <div style="font-weight:bold">
+          <span v-if="userTeamSelection == null">Select a team...</span>
+          <span v-else :style="{color: state.game.teams[userTeamSelection].color}">{{state.game.teams[userTeamSelection].name}} Team</span>
         </div>
       </div>
-      <h3>
-        <span v-if="userTeamSelection == 'bystander'">Sitting this one out...</span>
-        <span v-else :style="{color: state.game.teams[userTeamSelection].color}">{{state.game.teams[userTeamSelection].name}} Team</span>
-      </h3>
-      <div class="teamList">
-        <div class="playerCard ui-shiny" style="font-weight:bold;">
-          <img :src="state.game.teams[userTeamSelection].img" class="ui-raised">
-          <div>{{state.user.nickname}}</div>
-        </div>
-        <div class="playerCard ui-shiny"
-          v-for="member in state.game.teams[userTeamSelection].members"
-          :key="member.nickname"
-          :style="{display: member.nickname == state.user.nickname ? 'none':''}"
-        >
-          <img :src="state.game.teams[userTeamSelection].img">
-          <div>{{member.nickname}}</div>
-        </div>
-      </div> -->
+      </div>
 
     </div>
 
@@ -137,7 +128,7 @@
       <button v-if="state.user.isHost" class="inline ui-pressable ui-shiny" style="background: transparent; color: inherit;" @click="closeRoom"><i class="material-icons">cancel</i>  Close Room</button>
       <button v-else class="inline ui-pressable ui-shiny" style="background: transparent; color: inherit;" @click="leaveRoom"><i class="material-icons">cancel</i>Leave Room</button>
       
-      <button id="play" v-if="codeMasters.length>0 && (this.state.user.isHost || this.state.user.isCaptain)" class="inline ui-pressable ui-shiny ui-raised" @click="startGame">PLAY!</button>
+      <button id="play" v-if="canStartGame" class="inline ui-pressable ui-shiny ui-raised" @click="startGame">PLAY!</button>
       <div v-else style="text-align:right; font-size:.8em; font-weight:bold">Waiting for codemasters...</div>
     </div>
 
@@ -152,12 +143,16 @@
 </template>
 
 <script>
-class RoomHandler {
+class GameHandler {
   constructor(vue) {
     this.vue = vue;
   }
   startGame(game) {
     this.vue.$store.dispatch("updateGameState",game)
+  }
+  setTeamCaptain(teams) {
+    this.vue.$store.dispatch("updateGameState",{teams})
+    this.vue.setTeamImages();
   }
 }
 
@@ -166,7 +161,7 @@ export default {
 
   data() {return({
     state: this.$store.state,
-    gamePlayHandler: new RoomHandler(this),
+    gamePlayHandler: new GameHandler(this),
     appUrl: new URL(window.location.href).origin,
     numCardsSqrt: null,
     numTeams: 2,
@@ -178,12 +173,7 @@ export default {
   })},
 
   async mounted() {
-    
-    this.state.game.teams.assassin.img = this.ninjasImgs.black;
-    this.state.game.teams.teamOne.img = this.ninjasImgs.blue;
-    this.state.game.teams.teamTwo.img = this.ninjasImgs.red;
-    this.state.game.teams.bystander.img = this.ninjasImgs.yellow;
-
+    this.setTeamImages();
 
     fetch("https://api.qrapi.org/create?api_key=2bf6ed95d468a78cb2aef77a32036bcb&content="+encodeURIComponent(this.appUrl)).then(data=>{
       return data.json()
@@ -245,6 +235,13 @@ export default {
 
 
   methods: {
+    setTeamImages(){      
+      this.state.game.teams.assassin.img = this.ninjasImgs.black;
+      this.state.game.teams.teamOne.img = this.ninjasImgs.blue;
+      this.state.game.teams.teamTwo.img = this.ninjasImgs.red;
+      this.state.game.teams.bystander.img = this.ninjasImgs.yellow;
+    },
+
     calcNumBystanders() {
       let numBystanders = this.numCardsSqrt**2 - this.numAssassins - this.numTeamCards*this.numTeams;
       this.$store.commit('setTeamQty', {team: 'bystander', qty: numBystanders})
@@ -253,7 +250,7 @@ export default {
     },
 
     startGame() {
-      this.$store.dispatch('invokeGameMethod',{method:"startGame",args:[this.config]})
+      if (this.canStartGame) this.$store.dispatch('invokeGameMethod',{method:"startGame",args:[this.config]})
     },
 
     leaveRoom() {
@@ -267,12 +264,11 @@ export default {
   },
 
   computed: {
-    playableTeamCodes() {
-      let teams = [];
-      for (let [teamCode, team] of Object.entries(this.state.game.teams)) {
-        if (team.selectable) teams.push(teamCode)
-      }
-      return teams;
+    teamCaptainOptions() {
+      return Array.from(Object.values(this.state.game.teams)).reduce((teamIds,team)=>{
+        if(team.isCompetitor) teamIds.push(team.id)
+        return teamIds;
+      }, []);
     },
 
     maxCompTeamQty() {
@@ -295,24 +291,44 @@ export default {
     cardWidth() { return Math.floor(100/this.numCardsSqrt)+'%' },
 
     codeMasters() {
-      if (!this.$store.state.room.players) return [];
-      return this.$store.state.room.players.filter(p=>p.isCaptain);
+      console.log(this.state.game.teams)
+      let teams = Array.from(Object.values(this.$store.state.game.teams)).reduce((teamsData,team)=>{
+        if (team.isCompetitor && team.captain) teamsData.push({teamId:team.id,captain:team.captain});
+        return teamsData;
+      }, [])
+      console.log(teams);
+      return teams;
+    },
+
+    
+    userCaptainStatus: {
+      get() { return this.$store.state.user.isCaptain },
+      set(value) {
+        this.$store.dispatch('updateUserState',{ isCaptain:value })
+        if (value == false) {
+          this.$store.dispatch('invokeGameMethod',{ method:"setTeamCaptain",args:[this.state.user.teamCode,null] })
+          this.$store.dispatch('updateUserState',{ teamCode:null })
+          this.$store.dispatch('emitUserData')
+        }
+      }
     },
 
     userTeamSelection: {
       get() { return this.$store.state.user.teamCode },
       set(value) {
-        this.$store.dispatch('updateUserState',{teamCode: value })
+        if (this.state.user.isCaptain && this.state.user.teamCode) this.$store.dispatch('invokeGameMethod',{ method:"setTeamCaptain",args:[this.state.user.teamCode,null] })
+        this.$store.dispatch('updateUserState',{ teamCode: value })
         this.$store.dispatch('emitUserData')
+        this.$store.dispatch('invokeGameMethod',{ method:"setTeamCaptain",args:[this.state.user.teamCode,this.state.user] })
       }
     },
 
-    userCaptainStatus: {
-      get() { return this.$store.state.user.isCaptain },
-      set(value) {
-        this.$store.dispatch('updateUserState',{isCaptain: value })
-        this.$store.dispatch('emitUserData')
-      }
+    canStartGame() {
+      console.log("codemasters: ",this.codeMasters)
+      return (
+        this.codeMasters.length >= 2 &&
+        (this.state.user.isHost || this.state.user.isCaptain)
+      )
     },
 
     config() {
@@ -438,21 +454,21 @@ div#teamLists {
 #teamSelect.form-row label {
   display: block;
   border-radius: 50%;
-  width: 5rem;
-  height: 5rem;
+  width: 4rem;
+  height: 4rem;
   background-size: 110%;
   background-position: center;
   background-color: #bbb;
   margin: .5rem;
   transition: 200ms;
+  opacity: .7;
 }
 #teamSelect.form-row:hover label {
-  opacity: .8;
 }
 
 #teamSelect.form-row input:checked + label,#teamSelect.form-row label:hover {
   opacity: 1;
-  transform: scale(1.1)
+  transform: scale(1.2)
 }
 
 
