@@ -240,7 +240,15 @@ export default new Vuex.Store({
     },
 
     async attemptReconnect(context,oldConn) {
-      let res = await axios.get(context.state.apiUrl+"/api/canrejoin/"+oldConn.roomId+"/"+oldConn.socketId).then(res=>res.data)
+      let res = await axios.get(context.state.apiUrl+"/api/canrejoin/"+oldConn.roomId+"/"+oldConn.socketId)
+        .then(res=>res.data)
+        .catch(err=>{
+          console.log(err);
+          context.dispatch("publishNotif", new Notification({
+            type:"err",
+            msg: `Lost connection to server.`
+          }))
+        })
 
       console.log("Trying to reconnect: ",oldConn)
 
@@ -249,7 +257,7 @@ export default new Vuex.Store({
       }))
       let tryNotifId = context.state.notifs[context.state.notifs.length-1].id;
 
-      if(res.ok) {
+      if(res && res.ok) {
         removeUnclosedConn();
 
         let state = context.state;
@@ -405,6 +413,11 @@ function setupNewSocket(socket:any,context:any) {
         type:"err",
         msg: "You've been disconnected!. Trying to reconnect..."
       }))
+      let tryNotifId = context.state.notifs[context.state.notifs.length-1].id;
+
+      setTimeout(()=>{
+        context.dispatch("attemptReconnect",getUnclosedConn());
+      }, 5000)
     }
   })
 

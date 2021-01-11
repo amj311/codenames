@@ -81,6 +81,10 @@ class GameRoomManager {
         if (oldConn.userData.isHost) this.emitToAllConnections('handleRoomUpdate', {method:"hostDisconnect",payload:oldConn.userData});
         if (oldConn.userData.isPlayer) this.emitToAllConnections('handleRoomUpdate', {method:"playerDisconnect",payload:oldConn.userData});
 
+        if (oldConn.userData.isCaptain) {
+            this.game.setTeamCaptain(oldConn.userData.teamCode,null);
+            this.emitToAllConnections('updateGamePieces', this.game.teams);
+        }
         this.emitToAllConnections('updatePlayers', this.getPlayers());
     }
 
