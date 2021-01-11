@@ -7,10 +7,10 @@
     <Modal />
     <div id="notifsList">
       <div class="notif-card ui-raised" v-for="notif in notifs" :key="notif.id" :class="notif.type">
-        <span class="notifMsg">{{notif.msg}}</span>
-        <span v-if="notif.aff" class="notifAff btn" @click="consumeNotif(notif.id,notif.aff.action)">{{notif.aff.txt}}</span>
-        <span v-if="notif.neg" class="notifNeg" @click="consumeNotif(notif.id,notif.neg.action)">{{notif.neg.txt}}</span>
-        <span v-if="!notif.sticky" class="notifClose" @click="closeNotif(notif.id)">&times;</span>
+        <div class="notifMsg">{{notif.msg}}</div>
+        <div v-if="notif.aff" class="notifAff button inline ui-shiny" @click="consumeNotif(notif.id,notif.aff.action)">{{notif.aff.txt}}</div>
+        <div v-if="notif.neg" class="notifNeg button inline" @click="consumeNotif(notif.id,notif.neg.action)">{{notif.neg.txt}}</div>
+        <div v-if="!notif.sticky" class="notifClose" @click="closeNotif(notif.id)">&times;</div>
       </div>
     </div>
 
@@ -134,8 +134,8 @@ body::before {
 
 div#notifsList {
   position: fixed;
-  top: 0;
-  right: 0;
+  bottom: 0;
+  left: 0;
   display: flex;
   flex-direction: column;
   padding: 0 .5em;
@@ -152,18 +152,25 @@ div#notifsList {
   border-radius: .5em;
   display: flex;
   text-align: left;
+  align-items: center;
 }
-
 .notif-card.err {
   color: #fff;
-  background: rgb(187, 34, 34);
+  background: rgb(196, 61, 61);
 }
 
-span.notifMsg {
+.notifMsg {
   flex-grow: 1;
+  padding-right: 1em;
 }
-
-.notifClose {
+.notif-card .button {
+  border-radius: .4em;
+}
+div.notifNeg {
+  background: #fff;
+  color: #555;
+}
+div.notifClose {
   user-select: none;
   cursor:pointer;
 }
@@ -219,7 +226,7 @@ input[type="range"] {
 }
 
 
-button {
+button, .button {
   border: none;
   padding: .5em 1em;
   font-weight: bold;
@@ -229,12 +236,14 @@ button {
   display: inline-flex;
   align-items: center;
   font-size: 1em;
+  user-select: none;
+  cursor:pointer;
 }
-button.inline {
+button.inline, .button.inline {
   display: inline-flex;
   margin: 0;
-  padding: .8em 1em;
-  font-size: .75em;
+  padding: .5em .5em;
+  font-size: .8em;
 }
 
 i.material-icons {

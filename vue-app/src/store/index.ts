@@ -237,8 +237,9 @@ export default new Vuex.Store({
       console.log("Trying to reconnect: ",oldConn)
 
       context.dispatch("publishNotif", new Notification({
-        msg: `Trying to reconnect to room ${oldConn.roomId}`
+        msg: `Trying to reconnect to room ${oldConn.roomId.toUpperCase()}`
       }))
+      let tryNotifId = context.state.notifs[context.state.notifs.length-1].id;
 
       if(res.ok) {
         removeUnclosedConn();
@@ -256,8 +257,9 @@ export default new Vuex.Store({
 
           setUnclosedConn(socket.id,state.room.id);
 
+          context.dispatch("removeNotif", tryNotifId);
           context.dispatch("publishNotif", new Notification({
-            msg: "Reconnected to room "+oldConn.roomId
+            msg: "Reconnected to room "+context.getters.roomId
           }))
           context.commit('goToView', 'room')
 
@@ -266,6 +268,8 @@ export default new Vuex.Store({
 
       
       else {
+        context.dispatch("removeNotif", tryNotifId);
+
         context.dispatch("publishNotif", new Notification({
           type:"err",
           msg: `Reconnect failed.`
@@ -329,6 +333,10 @@ export default new Vuex.Store({
 
   },
   modules: {
+  },
+
+  getters: {
+    roomId: state => state.room.id.toUpperCase()
   }
 })
 

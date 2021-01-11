@@ -1,7 +1,7 @@
 <template>
   <div id="setup" class="ui-view-wrapper">
     <div id="roomInfo">
-      <div id="roomCode"><i class="material-icons">tap_and_play</i><span>Room Code:<span class="code-cap"> {{state.room.id}}</span></span></div>
+      <div id="roomCode"><i class="material-icons">tap_and_play</i><span>Room Code:<span class="code-cap"> {{$store.getters.roomId}}</span></span></div>
       <span style="text-transform: capitalize">Mode: {{state.room.mode}}</span>
     </div>
     
@@ -100,7 +100,7 @@
             <img :src='appUrlQr' id="joinQR" />
           </div>
           <p>Select <b>Join Room</b>, and enter this code:</p>
-          <h3><b class="code-cap">{{state.room.id}}</b></h3>
+          <h3><b class="code-cap">{{$store.getters.roomId}}</b></h3>
 
         </div>
       </div>

@@ -8,7 +8,7 @@
 <script>
 import Board from './Board.vue'
 import WaitingView from './WaitingView.vue'
-
+import Notification from "../utils/Notification"
 
 class RoomHandler {
   constructor(vue) {
@@ -29,7 +29,7 @@ class RoomHandler {
   }
   playerReconnect(player) {
     console.log("Reconnected player ",player)
-    this.vue.onPlayerDisconnect(player);
+    this.vue.onPlayerReconnect(player);
   }
 }
 
