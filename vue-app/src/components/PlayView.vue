@@ -27,6 +27,10 @@ class RoomHandler {
     console.log("Lost player: ",player)
     this.vue.onPlayerDisconnect(player);
   }
+  playerReconnect(player) {
+    console.log("Reconnected player ",player)
+    this.vue.onPlayerDisconnect(player);
+  }
 }
 
 export default {
@@ -57,7 +61,12 @@ export default {
     },
     onPlayerDisconnect(player){
       this.$store.dispatch("publishNotif", new Notification({
-        msg: "Lost player:"+player.nickname
+        msg: player.nickname+" disconnected."
+      }))
+    },
+    onPlayerReconnect(player){
+      this.$store.dispatch("publishNotif", new Notification({
+        msg: player.nickname+" reconnected!"
       }))
     }
   }

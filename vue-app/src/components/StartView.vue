@@ -104,19 +104,29 @@ export default {
     },
 
     checkForReconnection() {
-      let json = localStorage.getItem("unclosedConnection")
+      let json = sessionStorage.getItem("unclosedConnection")
       let oldConn = json? JSON.parse(json) : null;
       if(!oldConn) return;
 
-      let store = this.$store;
-      store.dispatch("publishNotif", new Notification({
-        sticky:true,
-        msg: `Would you like to reconnect to room ${oldConn.roomId.toUpperCase()}?`,
-        aff: {
-          txt: "Yes",
-          action: ()=>store.dispatch("attemptReconnect",oldConn)
+
+      axios.get(this.apiUrl+'/api/canrejoin/'+oldConn.roomId+"/"+oldConn.socketId).then( res=> {
+        if (res.data.ok) {
+          let store = this.$store;
+          store.dispatch("publishNotif", new Notification({
+            sticky:true,
+            msg: `Would you like to reconnect to room ${oldConn.roomId.toUpperCase()}?`,
+            aff: {
+              txt: "Yes",
+              action: ()=>store.dispatch("attemptReconnect",oldConn)
+            },
+            neg: {
+              txt: "No",
+              action: ()=>sessionStorage.removeItem("unclosedConnection")
+            }
+          }))
         }
-      }))
+      })
+
     }
   }
 }

@@ -366,10 +366,12 @@ function setupNewSocket(socket:any,context:any) {
     }
   })
   socket.on('handleGameplay', (props:{method:string,payload:any})=> {
-    if (gameplayHandler) gameplayHandler[props.method](props.payload);
+    if (gameplayHandler && gameplayHandler[props.method]) gameplayHandler[props.method](props.payload);
+    else console.warn("Gameplayhandler does not have method "+props.method)
   })
   socket.on('handleRoomUpdate', (props:{method:string,payload:any})=> {
-    if (roomHandler) roomHandler[props.method](props.payload);
+    if (roomHandler && roomHandler[props.method]) roomHandler[props.method](props.payload);
+    else console.warn("Roomhandler does not have method "+props.method)
   })
 
   socket.on('roomClosed', ()=> {
@@ -396,12 +398,13 @@ function setupNewSocket(socket:any,context:any) {
 
 function setUnclosedConn(socketId:string,roomId:string) {
   let connectionData = {socketId,roomId}
-  localStorage.setItem("unclosedConnection",JSON.stringify(connectionData))
+  sessionStorage.setItem("unclosedConnection",JSON.stringify(connectionData))
 }
 function getUnclosedConn() {
-  let json = localStorage.getItem("unclosedConnection")
+  let json = sessionStorage.getItem("unclosedConnection")
+  console.log("Unclosed connection:",json)
   return json? JSON.parse(json) : null;
 }
 function removeUnclosedConn() {
-  return localStorage.removeItem("unclosedConnection")
+  return sessionStorage.removeItem("unclosedConnection")
 }
