@@ -5,7 +5,7 @@ const Team = require("./Team");
 
 module.exports = class Game {
     constructor(config = null) {
-        this.teams = {};
+        this.teams = null;
         this.cards = null;
         this.teamOfTurn = null;
         this.winner = null;
@@ -24,15 +24,18 @@ module.exports = class Game {
             numAssassins:1,
             numBystanders:6,
         };
-        this.teams = {
+        if (this.teams === null) this.teams = {
             teamOne: new Team("teamOne","Blue","#0bf",true,this.config.numTeamCards),
             teamTwo: new Team("teamTwo","Red","#f22",true,this.config.numTeamCards),
             bystander: new Team("bystander","Bystander","#edcb40",false,this.config.numBystanders),
             assassin: new Team("assassin","Assassin","#2c3e50",false,this.config.numAssassins),
         }
-        this.winner = null;
-        this.teamOfTurn = null;
-        this.cards = null;
+        else {
+            this.teamOne =this.config.numTeamCards;
+            this.teamTwo =this.config.numTeamCards;
+            this.bystander =this.config.numBystanders;
+            this.assassin =this.config.numAssassins;
+        }
     }
 
     startGame(config) {
@@ -55,7 +58,7 @@ module.exports = class Game {
     
     exitGame() {
         if (!this.state.canEndGame) return;
-        this.configure();
+        this.resetGame();
         this.state = GameStates.waitingToStart;
         return this;
     };
@@ -100,6 +103,13 @@ module.exports = class Game {
     setTeamCaptain(teamCode,captain) {
         this.teams[teamCode].captain = captain;
         return this.teams;
+    }
+    
+    resetGame() {
+        this.cards = null;
+        this.teamOfTurn = null;
+        this.winner = null;
+        this.usedGuesses = 0;
     }
     
     getCardTeam(card) {

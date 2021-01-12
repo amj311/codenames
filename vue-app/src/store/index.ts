@@ -395,7 +395,6 @@ function setupNewSocket(socket:any,context:any) {
   socket.on('roomClosed', ()=> {
     console.log("The game was closed.")
     context.dispatch("publishNotif", new Notification({
-      type:"err",
       msg: "The room was closed."
     }))
     context.dispatch("resetToStart")
