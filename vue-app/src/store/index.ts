@@ -214,9 +214,8 @@ export default new Vuex.Store({
       })
     },
     
-    setupGameRoom(context, props: {id:string, mode: string}) {
+    setupGameRoom(context, props: {id:string}) {
       context.state.user.isHost = true;
-      context.state.user.isPlayer = (props.mode != 'party');
 
       context.dispatch('connectToRoom', {rid: props.id, cb: () => {
         context.dispatch('updateRoomState', props)

@@ -2,13 +2,10 @@ const Game = require("../model/entities/Game");
 
 class GameRoomManager {
 
-    constructor(rid, mode) {
-        console.log("Creating new "+mode+" room: "+rid)
+    constructor(rid) {
+        console.log("Creating new room: "+rid)
         this.id = rid;
-        this.mode = mode;
-
         this.game = new Game();
-        
         this.connections = new Map(); //Map<SocketID,{socket,userData}>
         this.lostConnections = new Map(); //Map<SocketID,{socket,userData}>
         this.host = null;
@@ -58,7 +55,6 @@ class GameRoomManager {
     getRoomSummary() {
         return {
             id: this.id,
-            mode: this.mode || null,
             players: this.getPlayers(),
         }
     }

@@ -331,6 +331,18 @@ img.ui-raised {
 
 
 
+@media screen and (min-width: 1000px) {
+  :root {
+    font-size: 3vw;
+  }
+}
+
+@media screen and (max-aspect-ratio: 1/1) and (min-width: 1000px) {
+  :root {
+    font-size: 3vh;
+  }
+}
+
 @media screen and (max-aspect-ratio: 1/1) {
   :root {
     font-size: 2vw;

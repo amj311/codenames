@@ -2,7 +2,7 @@
 <div id="slideWrapper">
   <div id="slideContainer" :class="{slid: showMenu}">
     <div id="main">
-      <button @click="openMenu('new')" class="ui-raised ui-pressable ui-shiny">New Game</button>
+      <button @click="startGame" class="ui-raised ui-pressable ui-shiny">New Game</button>
       <button @click="openMenu('join')" class="ui-raised ui-pressable ui-shiny">Join a Game</button>
     </div>
     <div id="menus">
@@ -79,8 +79,8 @@ export default {
       this.showMenu = false;
     },
     startGame() {
-      axios.get(this.apiUrl+'/api/newroom/'+this.newGameMode).then( res=> {
-        this.$store.dispatch('setupGameRoom', {id: res.data.rid, mode: this.newGameMode});
+      axios.get(this.apiUrl+'/api/newroom/').then( res=> {
+        this.$store.dispatch('setupGameRoom', {id: res.data.rid});
       }).catch( err => {
         console.log(err);
         this.$store.dispatch("publishNotif", new Notification({
