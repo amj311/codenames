@@ -419,13 +419,13 @@ function setupNewSocket(socket:any,context:any) {
 
 function setUnclosedConn(socketId:string,roomId:string) {
   let connectionData = {socketId,roomId}
-  sessionStorage.setItem("unclosedConnection",JSON.stringify(connectionData))
+  localStorage.setItem("unclosedConnection",JSON.stringify(connectionData))
 }
 function getUnclosedConn() {
-  let json = sessionStorage.getItem("unclosedConnection")
+  let json = localStorage.getItem("unclosedConnection")
   console.log("Unclosed connection:",json)
   return json? JSON.parse(json) : null;
 }
 function removeUnclosedConn() {
-  return sessionStorage.removeItem("unclosedConnection")
+  return localStorage.removeItem("unclosedConnection")
 }

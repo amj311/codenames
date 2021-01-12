@@ -113,7 +113,7 @@ export default {
     },
 
     checkForReconnection() {
-      let json = sessionStorage.getItem("unclosedConnection")
+      let json = localStorage.getItem("unclosedConnection")
       let oldConn = json? JSON.parse(json) : null;
       if(!oldConn) return;
 
@@ -130,7 +130,7 @@ export default {
             },
             neg: {
               txt: "No",
-              action: ()=>sessionStorage.removeItem("unclosedConnection")
+              action: ()=>localStorage.removeItem("unclosedConnection")
             }
           }))
         }
