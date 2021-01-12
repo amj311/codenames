@@ -65,7 +65,7 @@ function randomString(length) {
 // ROOMS
 const RoomManager = require('../model/server/GameRoomManager.js')
 let rooms = new Map(); //Map<roomId,RoomManager>
-let roomDeleteDelay = 1000 * 5;
+let roomDeleteDelay = 1000 * 60 * 5;
 
 function newRoom() {
   let newRoomId;
