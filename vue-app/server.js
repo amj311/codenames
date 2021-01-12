@@ -65,6 +65,7 @@ function randomString(length) {
 // ROOMS
 const RoomManager = require('../model/server/GameRoomManager.js')
 let rooms = new Map(); //Map<roomId,RoomManager>
+let roomDeleteDelay = 1000 * 60 * 5;
 
 function newRoom() {
   let newRoomId;
@@ -74,7 +75,36 @@ function newRoom() {
 
   rooms.set(newRoomId, new RoomManager(newRoomId))
 
+  setTimeout(()=>checkRoomStatus(newRoomId),roomDeleteDelay)
   return newRoomId;
+}
+
+function checkRoomStatus(roomId,alreadyInactive=false) {
+  let roomMatch = rooms.get(roomId);
+  if (roomMatch) {
+    console.log("Checking room "+roomId+" for inactivity...")
+    if (roomMatch.connections.size == 0) {
+      if (alreadyInactive) return deleteRoom(roomId)
+      else setTimeout(()=>checkRoomStatus(roomId,true), roomDeleteDelay)
+    }
+    else setTimeout(()=>checkRoomStatus(roomId,false), roomDeleteDelay)
+
+    console.log("Room was still active.")
+  }
+}
+
+function deleteRoom(roomId) {
+  let roomMatch = rooms.get(roomId);
+  if (roomMatch) {
+    roomMatch.beforeClose();
+    rooms.delete(roomMatch.id)
+    console.log('Deleting room '+roomMatch.id)
+    return true;
+  }
+  else {
+    console.log("Could not find room: "+roomMatch.id)
+    return false;
+  }
 }
 
 
@@ -100,18 +130,10 @@ app.get('/api/newroom/', (req,res) => {
 })
 
 app.delete('/api/closeroom/:id', (req,res) => {
-  let roomMatch = rooms.get(req.params.id)
-
-  if (roomMatch) {
-    roomMatch.beforeClose();
-    rooms.delete(roomMatch.id)
-    console.log('Deleting room '+roomMatch.id)
-    res.sendStatus(200)
-  }
-  else {
-    console.log("Could not find room: "+roomMatch.id)
-    res.sendStatus(404)
-  }
+  let roomId = rooms.get(req.params.id)
+  let success = deleteRoom(roomId);
+  if (success) res.sendStatus(200)
+  else res.sendStatus(404)
 })
 
 app.get('/api/canrejoin/:roomId/:socketId', (req,res) => {

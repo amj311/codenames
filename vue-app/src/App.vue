@@ -32,6 +32,7 @@ export default {
   },
   created() {
     this.$store.commit('setWords', wordSet.words);
+    document.title = "BOM Codenames"
   },
 
   data() { return ({
@@ -101,7 +102,7 @@ body::before {
   position: relative;
   width: 100%;
   height: 100%;
-  max-width: 42rem;
+  max-width: 50rem;
   display: flex;
   align-content: center;
   align-items: center;
@@ -330,18 +331,6 @@ img.ui-raised {
 
 
 
-
-@media screen and (min-width: 1000px) {
-  :root {
-    font-size: 3vw;
-  }
-}
-
-@media screen and (max-aspect-ratio: 1/1) and (min-width: 1000px) {
-  :root {
-    font-size: 3vh;
-  }
-}
 
 @media screen and (max-aspect-ratio: 1/1) {
   :root {
