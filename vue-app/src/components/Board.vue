@@ -1,9 +1,9 @@
 <template>
   <div id="boardWrapper">
     <div id="topBar" class="ui-raised">
-      <div style="flex-grow:1">
+      <!-- <div style="flex-grow:1">
         <button style="opacity:0">PLAY AGAIN</button>
-      </div>
+      </div> -->
       <div id="roomCode"><i class="material-icons">tap_and_play</i><span>{{$store.getters.roomId}}</span></div>
       <div style="flex-grow:1;text-align:right">
         <button @click="initExitGame" v-if="gameState.roundStatus == 'gameOver'" class="ui-raised ui-pressable ui-shiny">PLAY AGAIN</button>
@@ -300,6 +300,10 @@ div#topBar {
   text-align: center;
   justify-content: space-between;
   align-items: center;
+  padding: .5em;
+}
+#topBar button {
+  margin:0;
 }
 #roomCode {
   font-size: 1.3em;
