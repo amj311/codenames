@@ -101,7 +101,7 @@ module.exports = class Game {
     };
 
     setTeamCaptain(teamCode,captain) {
-        this.teams[teamCode].captain = captain;
+        if (this.teams[teamCode]) this.teams[teamCode].captain = captain;
         return this.teams;
     }
     

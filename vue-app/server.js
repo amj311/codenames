@@ -94,8 +94,10 @@ function checkRoomStatus(roomId,alreadyInactive=false) {
 }
 
 function deleteRoom(roomId) {
+  console.log("DELETING ",roomId)
   let roomMatch = rooms.get(roomId);
   if (roomMatch) {
+
     roomMatch.beforeClose();
     rooms.delete(roomMatch.id)
     console.log('Deleting room '+roomMatch.id)
@@ -130,7 +132,7 @@ app.get('/api/newroom/', (req,res) => {
 })
 
 app.delete('/api/closeroom/:id', (req,res) => {
-  let roomId = rooms.get(req.params.id)
+  let roomId = req.params.id;
   let success = deleteRoom(roomId);
   if (success) res.sendStatus(200)
   else res.sendStatus(404)
