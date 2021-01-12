@@ -28,39 +28,39 @@
     <div id="teamSelection" class="ui-block" v-if="state.user.isPlayer">
       <div style="text-align:center">
         <h3>Waiting for the game to start...</h3>
-        <div>
-          <label for="captainStatus" style="display:flex; justify-content:center; align-items:center; cursor:pointer;">
-            <span>Play as Codemaster?</span>
-            <input type="range"
-              :style="`max-width:1.7em; transform:scale(1.5); filter: grayscale(${state.user.isCaptain? 0:1}); pointer-events:none;`"
-              :value="state.user.isCaptain? 1:0" min="0" max="1" step="1"
-            >
-          </label>
-          <input type="checkbox" id="captainStatus" v-model="userCaptainStatus" hidden>
-        </div>
-
-      <div v-if="state.user.isCaptain">
-        <h3>Choose Your Team</h3>
-        <div class="form-row" id="teamSelect">
-          <div v-for="teamCode in teamCaptainOptions" :key="teamCode">
-            <input type="radio" :id="teamCode" v-model="userTeamSelection" :value="teamCode" hidden>
-            <label
-              :for="teamCode"
-              class="ui-pressable ui-shiny ui-raised"
-              :disabled="state.game.teams[teamCode].captain"
-              :style="{'background-image': `url(${state.game.teams[teamCode].img})`}" width="50" />
+        <div id="captainOptions" v-if="codeMasters.length<2 || state.user.isCaptain">
+          <div>
+            <label for="captainStatus" style="display:flex; justify-content:center; align-items:center; cursor:pointer;">
+              <span>Play as Codemaster?</span>
+              <input type="range"
+                :style="`max-width:1.7em; transform:scale(1.5); filter: grayscale(${state.user.isCaptain? 0:1}); pointer-events:none;`"
+                :value="state.user.isCaptain? 1:0" min="0" max="1" step="1"
+              >
+            </label>
+            <input type="checkbox" id="captainStatus" v-model="userCaptainStatus" hidden>
           </div>
-        </div>
-        <div style="font-weight:bold">
-          <span v-if="userTeamSelection == null">Select a team...</span>
-          <span v-else :style="{color: state.game.teams[userTeamSelection].color}">{{state.game.teams[userTeamSelection].name}} Team</span>
-        </div>
-      </div>
-      </div>
 
+          <div v-if="state.user.isCaptain">
+            <h3>Choose Your Team</h3>
+            <div class="form-row" id="teamSelect">
+              <div v-for="teamCode in teamCaptainOptions" :key="teamCode">
+                <input type="radio" :id="teamCode" v-model="userTeamSelection" :value="teamCode" hidden>
+                <label
+                  :for="teamCode"
+                  class="ui-pressable ui-shiny ui-raised"
+                  :disabled="state.game.teams[teamCode].captain"
+                  :style="{'background-image': `url(${state.game.teams[teamCode].img})`}" width="50" />
+              </div>
+            </div>
+            <div style="font-weight:bold">
+              <span v-if="userTeamSelection == null">Select a team...</span>
+              <span v-else :style="{color: state.game.teams[userTeamSelection].color}">{{state.game.teams[userTeamSelection].name}} Team</span>
+            </div>
+          </div>        
+        </div>
+
+      </div>
     </div>
-
-
   </div>
 
     <div id="settings" v-if="state.user.isHost || state.mode == 'remote'">
@@ -155,9 +155,11 @@ export default {
     numBystanders: null,
     appUrlQr: null,
     ninjasImgs: this.$store.state.ninjasImgs,
+    captainIsSelected: false,
   })},
 
   async mounted() {
+    this.captainIsSelected = this.state.user.isCaptain;
     this.setTeamImages();
 
     fetch("https://api.qrapi.org/create?api_key=2bf6ed95d468a78cb2aef77a32036bcb&content="+encodeURIComponent(this.appUrl)).then(data=>{
