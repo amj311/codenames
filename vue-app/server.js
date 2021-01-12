@@ -66,13 +66,13 @@ function randomString(length) {
 const RoomManager = require('../model/server/GameRoomManager.js')
 let rooms = new Map(); //Map<roomId,RoomManager>
 
-function newRoom(mode) {
+function newRoom() {
   let newRoomId;
   do {
     newRoomId = randomString(5);
   } while ( rooms.has(newRoomId))
 
-  rooms.set(newRoomId, new RoomManager(newRoomId, mode))
+  rooms.set(newRoomId, new RoomManager(newRoomId))
 
   return newRoomId;
 }
@@ -92,9 +92,9 @@ app.get('/api/rooms/:id', (req,res) => {
   else res.json({ok: false})
 })
 
-app.get('/api/newroom/:mode', (req,res) => {
+app.get('/api/newroom/', (req,res) => {
   console.log("new room requested")
-  let newRoomId = newRoom(req.params.mode);
+  let newRoomId = newRoom();
   console.log("Created new room: "+newRoomId)
   res.json({ok: true, rid: newRoomId})
 })
