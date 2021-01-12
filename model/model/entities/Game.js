@@ -9,6 +9,7 @@ module.exports = class Game {
         this.cards = null;
         this.teamOfTurn = null;
         this.winner = null;
+        this.usedGuesses = 0;
     
         this.configure(config)
     
@@ -66,6 +67,8 @@ module.exports = class Game {
           if (this.teamOfTurn == this.teams.teamOne) this.teamOfTurn = this.teams.teamTwo;
           else this.teamOfTurn = this.teams.teamOne;
         }
+        this.usedGuesses = 0;
+
         return this.teamOfTurn;
     };
 
@@ -77,6 +80,7 @@ module.exports = class Game {
         
         card.revealTeam();
         cardTeam.pts++;
+        this.usedGuesses++;
         
         if (
             (cardTeam == this.teams.assassin || cardTeam.pts == cardTeam.qty) &&
@@ -90,7 +94,7 @@ module.exports = class Game {
             this.advanceTurn();
         }
 
-        return new RevealCardResponse(card,wasTeamCard,this.cards,this.teamOfTurn,this.winner,this.state)
+        return new RevealCardResponse(card,wasTeamCard,this.cards,this.teamOfTurn,this.winner,this.state,this.usedGuesses)
     };
 
     setTeamCaptain(teamCode,captain) {

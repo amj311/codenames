@@ -1,39 +1,50 @@
 <template>
-  <div>
-    <div id="topBar">
-      <div id="scoreboard" v-if="gameState.teamOfTurn && gameState.roundStatus != 'gameOver'">
-        <div id="activeTeam" :style="{color: gameState.teamOfTurn.color}">Go {{gameState.teamOfTurn.name}}!</div>
-        
-        <!-- FOR FULL REMOTE -->
-        <!-- <div id="activeHint">{{gameState.roundStatus =='guessing' ? `"${gameState.turnHint}"` : "Waiting for hint..."}}</div> -->
-        <!-- <div id="guessCounter" v-if="gameState.roundStatus == 'guessing'">Attempts: {{Math.max(0, gameState.turnGuesses-gameState.usedGuesses)}}<span class="extraHint"> + 1</span></div> -->
+  <div id="boardWrapper">
+    <div id="topBar" class="ui-raised">
+      <div style="flex-grow:1">
+        <button style="opacity:0">PLAY AGAIN</button>
       </div>
-      <div id="winnerMsg" v-else-if="gameState.roundStatus == 'gameOver'"><div class="ui-raised ui-shiny" :style="`text-align: center; margin: 0 auto; background-color: ${gameState.winner? gameState.winner.color : gameState.teams.bystander.color}; color: #fff; padding: 0 .4em; border-radius: 5px;`">{{gameState.winner? gameState.winner.name+" Wins!" : "DRAW!"}}</div></div>
-      <div v-else>Ready!</div>
-    </div>
-
-    <div v-if="gameState.cards.length > 0" class="cards-table" :style="{'pointer-events': (gameState.roundStatus == 'guessing' || gameState.roundStatus == 'gameOver') ? 'all' : 'none'}">
-      <div v-for="card in gameState.cards" :key="card.word" :id="'card_'+card.id" class="card-cell" :style="{width: cardWidth+'%', 'padding-top': cardWidth*.60+'%'}">
-        <Card :freeRotate="gameState.roundStatus == 'gameOver'" :card="card" @tryFlip="initCardFlip" />
-      </div>
-    </div>
-
-    <br>
-
-    <div id="bottomBar" v-if="state.user.isHost || state.user.isCaptain">
-      <div style="display: flex; justify-content: flex-start;">
-      </div>
-      <div>
-        <!-- FOR FULL REMOTE -->
-        <!-- <button @click="giveHint" v-if="gameState.roundStatus == 'givingHint'" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': gameState.teamOfTurn.color}">GIVE HINT</button> -->
-        <button @click="initAdvanceTurn" v-if="gameState.roundStatus == 'guessing'" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': gameState.teams.bystander.color}">END TURN</button>
+      <div id="roomCode"><i class="material-icons">tap_and_play</i><span>{{$store.getters.roomId}}</span></div>
+      <div style="flex-grow:1;text-align:right">
         <button @click="initExitGame" v-if="gameState.roundStatus == 'gameOver'" class="ui-raised ui-pressable ui-shiny">PLAY AGAIN</button>
-      </div>
-      <div style="display: flex; justify-content: flex-end;">
         <button @click="promptEndGame" v-if="gameState.roundStatus != 'gameOver'" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': '#888'}">END GAME</button>
       </div>
     </div>
 
+    <div id="playArea">
+      <div id="roundSummary">
+        <div id="scoreboard" v-if="gameState.teamOfTurn && gameState.roundStatus != 'gameOver'">
+          <div id="activeTeam" :style="{color: gameState.teamOfTurn.color}">Go {{gameState.teamOfTurn.name}}!</div>
+          <div id="guessCounter" v-if="gameState.roundStatus == 'guessing'">Attempts: {{gameState.usedGuesses}}</div>
+          <button @click="initAdvanceTurn"
+            v-if="gameState.roundStatus == 'guessing' && state.user.isCaptain && gameState.teamOfTurn.id == state.user.teamCode" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': gameState.teamOfTurn.color}">END TURN</button>
+        </div>
+        <div id="winnerMsg" v-else-if="gameState.roundStatus == 'gameOver'">
+          <div class="ui-raised ui-shiny" :style="`text-align: center; margin: 0 auto; background-color: ${gameState.winner? gameState.winner.color : gameState.teams.bystander.color}; color: #fff; padding: .5em 1em; border-radius: 5px; font-size:1.2em`">{{gameState.winner? gameState.winner.name+" Wins!" : "DRAW!"}}</div>
+        </div>
+      </div>
+
+      <div v-if="gameState.cards.length > 0" class="cards-table" :style="{'pointer-events': (gameState.roundStatus == 'guessing' || gameState.roundStatus == 'gameOver') ? 'all' : 'none'}">
+        <div v-for="card in gameState.cards" :key="card.word" :id="'card_'+card.id" class="card-cell" :style="{width: cardWidth+'%', 'padding-top': cardWidth*.60+'%'}">
+          <Card :freeRotate="gameState.roundStatus == 'gameOver'" :card="card" @tryFlip="initCardFlip" />
+        </div>
+      </div>
+
+      <br>
+
+      <div id="bottomBar" v-if="state.user.isHost || state.user.isCaptain">
+        <div style="display: flex; justify-content: flex-start;">
+        </div>
+        <div>
+          <!-- FOR FULL REMOTE -->
+          <!-- <button @click="giveHint" v-if="gameState.roundStatus == 'givingHint'" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': gameState.teamOfTurn.color}">GIVE HINT</button> -->
+        </div>
+        <div style="display: flex; justify-content: flex-end;">
+        </div>
+      </div>
+
+    </div>
+    
     <div id="animationOverlay">
       <div v-for="anim in anims" :key="anim.id" class="track" :class="anim.class" :style="{left: anim.left+'px', top: anim.top+'px', 'font-size': anim.spriteText ? anim.size : '0'}"><div class="sprite" :style="{'animation-duration': anim.duration+'ms'}">
         {{anim.spriteText}}
@@ -190,8 +201,9 @@ export default {
         winningCard: res.card,
         winner: res.winner,
         cards: res.cards,
-        state: res.state
-      });
+        state: res.state,
+        usedGuesses: res.usedGuesses
+     });
 
     },
 
@@ -275,8 +287,31 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-h3 {
-  margin: 40px 0 0;
+
+div#boardWrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+div#topBar {
+  display: flex;
+  background: white;
+  text-align: center;
+  justify-content: space-between;
+  align-items: center;
+}
+#roomCode {
+  font-size: 1.3em;
+  display: flex;
+  align-items: center;  
+  font-weight: bold;
+  flex-wrap: wrap;
+  justify-content: space-around;
+}
+
+div#playArea {
+  padding: 1em;
 }
 
 .cards-table {
@@ -293,10 +328,8 @@ h3 {
 
 
 
-
-div#topBar {
+#roundSummary {
   font-weight: bold;
-  font-size: 1.25rem;
   padding: .4em;
   text-align: center;
   width: 100%;
@@ -306,6 +339,10 @@ div#topBar {
 div#scoreboard, div#winnerMsg {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+}
+#activeTeam {
+  font-size:1.25em
 }
 
 span.extraHint {
@@ -374,6 +411,18 @@ div#bottomBar > div {
   from { opacity: 1; transform: translate(-50%, 50%) scale(1) }
   to { opacity: 0; transform: translate(-50%, 50%) scale(5)  }
 }
+
+
+@media screen and (min-width: 601px) {
+  div#playArea {
+    padding: 1em;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+}
+
 
 
 @media screen and (max-width: 600px) {

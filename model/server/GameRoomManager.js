@@ -83,7 +83,7 @@ class GameRoomManager {
 
         if (oldConn.userData.isCaptain) {
             this.game.setTeamCaptain(oldConn.userData.teamCode,null);
-            this.emitToAllConnections('updateGamePieces', this.game.teams);
+            this.emitToAllConnections('updateGamePieces', {teams:this.game.teams});
         }
         this.emitToAllConnections('updatePlayers', this.getPlayers());
     }
@@ -98,6 +98,16 @@ class GameRoomManager {
         if (!oldConnPair) return false;
 
         this.lostConnections.delete(oldSockId);
+        
+        if (oldConnPair.userData.isCaptain) {
+            if(!this.game.teams[oldConnPair.userData.teamCode].captain)
+                this.game.setTeamCaptain(oldConnPair.userData.teamCode,oldConnPair.userData);
+            else {
+                oldConnPair.userData.isCaptain = false;
+                oldConnPair.userData.teamCode = null;
+            }
+            this.emitToAllConnections('updateGamePieces', {teams:this.game.teams});
+        }
 
         this.setupPlayerSocket(newSocket,oldConnPair.userData,()=>{
             cb(oldConnPair.userData,this.game,this.getRoomSummary())

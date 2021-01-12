@@ -2,26 +2,11 @@
   <div id="setup" class="ui-view-wrapper">
     <div id="roomInfo">
       <div id="roomCode"><i class="material-icons">tap_and_play</i><span>Room Code:<span class="code-cap"> {{$store.getters.roomId}}</span></span></div>
-      <span style="text-transform: capitalize">Mode: {{state.room.mode}}</span>
     </div>
     
 
 
   <div id="teams">
-    <!-- <div id="teamsDisplay" class="ui-block" v-if="state.user.isHost">
-      <h3>Players</h3>
-      <div id="teamLists">
-        <div class="teamList" v-for="team in state.game.teams" :key="team.name">
-          <div v-if="team.selectable">
-            <div class="playerCard ui-shiny" v-for="player in team.members" :key="player.nickname">
-              <img :src="team.img">
-              <div>{{player.nickname}}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div> -->
-
     <div id="codeMasterDisplay" class="ui-block" v-if="state.user.isHost">
       <h3>Codemasters</h3>
       <div v-if="codeMasters.length>0">
@@ -240,6 +225,7 @@ export default {
       this.state.game.teams.teamOne.img = this.ninjasImgs.blue;
       this.state.game.teams.teamTwo.img = this.ninjasImgs.red;
       this.state.game.teams.bystander.img = this.ninjasImgs.yellow;
+      this.$store.dispatch('emitGamePieces', ['teams']);
     },
 
     calcNumBystanders() {
@@ -360,6 +346,12 @@ export default {
 
 
 <style scoped>
+#setup {
+  padding: 1rem;
+  max-width: 100vw;
+  box-sizing: border-box;
+}
+
 #roomInfo {
   margin: .5em 0;
 }
