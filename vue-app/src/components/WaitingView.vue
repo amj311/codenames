@@ -346,6 +346,12 @@ export default {
 
 
 <style scoped>
+#setup {
+  padding: 1rem;
+  max-width: 100vw;
+  box-sizing: border-box;
+}
+
 #roomInfo {
   margin: .5em 0;
 }

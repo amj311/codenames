@@ -4,7 +4,7 @@
       <div style="flex-grow:1">
         <button style="opacity:0">PLAY AGAIN</button>
       </div>
-      <div style="max-width:max-content"><h2>{{$store.getters.roomId}}</h2></div>
+      <div id="roomCode"><i class="material-icons">tap_and_play</i><span>{{$store.getters.roomId}}</span></div>
       <div style="flex-grow:1;text-align:right">
         <button @click="initExitGame" v-if="gameState.roundStatus == 'gameOver'" class="ui-raised ui-pressable ui-shiny">PLAY AGAIN</button>
         <button @click="promptEndGame" v-if="gameState.roundStatus != 'gameOver'" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': '#888'}">END GAME</button>
@@ -19,8 +19,9 @@
           <button @click="initAdvanceTurn"
             v-if="gameState.roundStatus == 'guessing' && state.user.isCaptain && gameState.teamOfTurn.id == state.user.teamCode" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': gameState.teamOfTurn.color}">END TURN</button>
         </div>
-        <div id="winnerMsg" v-else-if="gameState.roundStatus == 'gameOver'"><div class="ui-raised ui-shiny" :style="`text-align: center; margin: 0 auto; background-color: ${gameState.winner? gameState.winner.color : gameState.teams.bystander.color}; color: #fff; padding: 0 .4em; border-radius: 5px;`">{{gameState.winner? gameState.winner.name+" Wins!" : "DRAW!"}}</div></div>
-        <div v-else>Ready!</div>
+        <div id="winnerMsg" v-else-if="gameState.roundStatus == 'gameOver'">
+          <div class="ui-raised ui-shiny" :style="`text-align: center; margin: 0 auto; background-color: ${gameState.winner? gameState.winner.color : gameState.teams.bystander.color}; color: #fff; padding: .5em 1em; border-radius: 5px; font-size:1.2em`">{{gameState.winner? gameState.winner.name+" Wins!" : "DRAW!"}}</div>
+        </div>
       </div>
 
       <div v-if="gameState.cards.length > 0" class="cards-table" :style="{'pointer-events': (gameState.roundStatus == 'guessing' || gameState.roundStatus == 'gameOver') ? 'all' : 'none'}">
@@ -200,8 +201,9 @@ export default {
         winningCard: res.card,
         winner: res.winner,
         cards: res.cards,
-        state: res.state
-      });
+        state: res.state,
+        usedGuesses: res.usedGuesses
+     });
 
     },
 
@@ -298,6 +300,14 @@ div#topBar {
   text-align: center;
   justify-content: space-between;
   align-items: center;
+}
+#roomCode {
+  font-size: 1.3em;
+  display: flex;
+  align-items: center;  
+  font-weight: bold;
+  flex-wrap: wrap;
+  justify-content: space-around;
 }
 
 div#playArea {

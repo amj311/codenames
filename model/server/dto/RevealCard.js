@@ -5,11 +5,12 @@ module.exports.RevealCardRequest = class {
 }
 
 module.exports.RevealCardResponse = class {
-    constructor(card,wasTeamCard,cards,teamOfTurn,winner,state) {
+    constructor(card,wasTeamCard,cards,teamOfTurn,winner,state,usedGuesses) {
         this.card = card;
         this.wasTeamCard = wasTeamCard;
         this.cards = cards;
         this.teamOfTurn = teamOfTurn;
+        this.usedGuesses = usedGuesses;
         this.winner = winner;
         this.state = state;
     }

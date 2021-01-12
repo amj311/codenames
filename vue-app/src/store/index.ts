@@ -120,15 +120,11 @@ export default new Vuex.Store({
       state.game.roundStatus = '';
       state.game.winner = null;
       state.game.turnHint = "";
-      state.game.turnGuesses = 1;
       state.game.usedGuesses = 0;
     },
     newHint(state, props: {turnHint: string, turnGuesses: number}) {
       state.game.turnHint = props.turnHint;
       state.game.turnGuesses = props.turnGuesses;
-    },
-    useGuess(state){
-      state.game.usedGuesses++;
     },
     updateModal(state: any, props) {
       state.modal.form = props.form;

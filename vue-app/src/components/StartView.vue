@@ -145,6 +145,7 @@ export default {
 #slideWrapper {
   width: calc(100vw - 2rem);;
   overflow: hidden;
+  padding: 1rem;
 }
 #slideContainer {
   top: 0;
