@@ -2,8 +2,8 @@
   <div id="app">
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
 
-    <StartView v-if="state.view == 'start'" />
-    <PlayView v-else />
+    <router-view />
+
     <Modal />
     <div id="notifsList">
       <div class="notif-card ui-raised" v-for="notif in notifs" :key="notif.id" :class="notif.type">
@@ -18,20 +18,17 @@
 </template>
 
 <script>
-import PlayView from './components/PlayView.vue'
-import StartView from './components/StartView.vue'
 import Modal from './components/Modal.vue'
 let wordSet = require('./assets/words/test_rel.json');
 
 export default {
   name: 'App',
   components: {
-    PlayView,
-    StartView,
     Modal,
   },
   created() {
     this.$store.commit('setWords', wordSet.words);
+    this.$store.commit('setRouter', this.$router);
     document.title = "BOM Codenames"
   },
 

@@ -81,6 +81,7 @@ export default {
     startGame() {
       axios.get(this.apiUrl+'/api/newroom/').then( res=> {
         this.$store.dispatch('setupGameRoom', {id: res.data.rid});
+        // this.$router.push({ name: 'Play', params: { rid: res.data.rid } })
       }).catch( err => {
         console.log(err);
         this.$store.dispatch("publishNotif", new Notification({
@@ -105,7 +106,7 @@ export default {
               }))
             }
             else {
-              context.$store.dispatch('joinGameRoom', res.data.rid);
+              context.$store.dispatch('joinGameRoom', {rid:res.data.rid});
             }
           })
         },

@@ -55,7 +55,7 @@
 </template>
 
 <script>
-import Card from './Card.vue'
+import Card from '../components/Card.vue'
 import Notification from "../utils/Notification"
 
 class GameplayHandler {
@@ -118,8 +118,6 @@ export default {
 
   methods: {
     endGame() {
-      // this.resetBoard();
-      // this.$store.commit('goToView','room');  
       this.$store.dispatch('updateGameState',{roundStatus: 'gameOver'});
       this.emitBoard();
     },

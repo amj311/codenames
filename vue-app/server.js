@@ -187,11 +187,12 @@ socketio.on('connection', (socket) => {
     if (roomMatch) {
       console.log('Found requested room '+roomMatch.id)			
       roomMatch.addPlayer(socket, userData)
-      cb();
+      cb(true);
     }
     else {
       console.log("Could not find room: "+roomId)
       socket.emit('err',"Could not find room: "+roomId)
+      cb(false);
     }
   })
 

@@ -1,7 +1,9 @@
 <template>
   <div class="ui-view-wrapper">
-    <WaitingView v-if="!gameState.state.isInPlay" />
-    <Board v-else style="width: 100%" />
+    <div v-if="roomIsReady">
+      <Board v-if="gameState.state && gameState.state.isInPlay" style="width: 100%" />
+      <WaitingView v-else />
+    </div>
   </div>
 </template>
 
@@ -43,13 +45,32 @@ export default {
     state: this.$store.state,
     gameState: this.$store.state.game,
     roomHandler: new RoomHandler(this),
+    roomIsReady: false
   }},
 
   created() {
     this.$store.commit("setRoomHandler",this.roomHandler)
+    this.checkRoute();
   },
 
   methods: {
+    checkRoute(){
+      let routeRid = this.$route.params.rid;
+      this.roomIsReady = routeRid == this.state.room.id
+      console.log("ROUTE MATCHES? ",this.roomIsReady);
+
+      if (!this.roomIsReady) {
+        let oldConn = localStorage.getItem("unclosedConnection") ? JSON.parse(localStorage.getItem("unclosedConnection")) : null;
+        if (oldConn && oldConn.roomId == routeRid) this.$store.dispatch("attemptReconnect",()=>{
+          this.roomIsReady =  true;
+        })
+        else this.$store.dispatch("joinGameRoom",{
+          rid:routeRid,
+          cb:()=>this.roomIsReady = true
+        })
+      }
+    },
+
     onRoomClosed(){
       // not yet implemented
     },

@@ -9,7 +9,6 @@ Vue.use(Vuex)
 let gameplayHandler:any;
 let roomHandler:any;
 
-
 export default new Vuex.Store({
   state: {
     apiUrl: process.env.NODE_ENV=="development"? "http://localhost:3000" : "",
@@ -23,34 +22,7 @@ export default new Vuex.Store({
       codeMasters: [],
     },
     
-    game: {
-      state: null,
-      config: {
-        numCardsSqrt:5,
-        numTeams:2,
-        numTeamCards:9,
-        numAssassins:1,
-        numBystanders:6,
-      },
-
-      cards: [],
-
-      teams: {
-        teamOne: { qty: 9, selectable: true, color: "#0bf", name: "Blue", deck: [], points: 0, img: require('@/assets/ninjas/blue.png'), members: [] },
-        teamTwo: { qty: 9, selectable: true, color: "#f22", name: "Red", deck: [], points: 0, img: require('@/assets/ninjas/red.png'), members: [] },
-        teamThree: { qty: 0, selectable: false, color: "#0f2", name: "Green", deck: [], points: 0, img: require('@/assets/ninjas/green.png'), members: [] },
-        bystander: { qty: 6, selectable: true, color: "#edcb40", name: "Bystander", deck: [], points: 0, img: require('@/assets/ninjas/yellow.png'), members: [] },
-        assassin: { qty: 1, color: "#2c3e50", name: "Assassin", deck: [], points: 0, img: require('@/assets/ninjas/black.png') },
-      },
-
-
-      teamOfTurn: null,
-      canPlay: false,
-      roundStatus: 'room',
-      winner: null,
-      turnHint: "",
-      usedGuesses: 0,
-    },
+    game: null,
 
     user: {
       id: Date.now()+Math.random()*(Math.random()+1),
@@ -83,8 +55,14 @@ export default new Vuex.Store({
 
   },
   mutations: {
-    goToView(state: any, view:string) {
-      state.view = view;
+    setRouter(state: any, router:any) {
+      state.router = router;
+    },
+    goToStart(state: any) {
+      state.router.push({ name: 'Start'})
+    },
+    goToRoom(state: any, rid:string) {
+      state.router.push({ name: 'Play', params: { rid } })
     },
     updateStateObject(state, options:{object:string, props:any}) {
       let stateKeys = Object.keys(state[options.object]);
@@ -177,7 +155,7 @@ export default new Vuex.Store({
         teamCode: null,
         nickname: '',
       }
-      context.commit('goToView', 'start')
+      context.commit('goToStart')
       removeUnclosedConn();
       context.state.socket.disconnect()
       context.state.socket = null;
@@ -200,17 +178,26 @@ export default new Vuex.Store({
 
 
 
-    connectToRoom(context:any, options:{rid:string, cb: any}) {
+    connectToRoom(context, options:{rid:string, cb: any}) {
       removeUnclosedConn();
 
       let state = context.state;
       state.socket = setupNewSocket(state.socket,context);
       let socket = state.socket;
       
-      socket.emit('joinRoom',options.rid, state.user, () => {
-        state.room.id = options.rid;
-        setUnclosedConn(socket.id,state.room.id);
-        options.cb();
+      socket.emit('joinRoom',options.rid, state.user, (success:boolean,roomData:any,gameData:any) => {
+        if (success) {
+          state.room.id = options.rid;
+          setUnclosedConn(socket.id,state.room.id);
+          options.cb();
+        }
+        else {
+          context.dispatch("publishNotif", new Notification({
+            type:"err",
+            msg:"Could not join room "+options.rid.toUpperCase()
+          }))
+          context.commit("resetToStart")
+        }
       })
     },
     
@@ -219,21 +206,23 @@ export default new Vuex.Store({
 
       context.dispatch('connectToRoom', {rid: props.id, cb: () => {
         context.dispatch('updateRoomState', props)
-        context.commit('goToView', 'room')
+        context.commit('goToRoom', props.id)
       }});
     },
-    joinGameRoom(context, rid:string) {
+    joinGameRoom(context, props:{rid:string, cb:any}) {
       context.state.user.isHost = false;
       context.state.user.isPlayer = true;
       
-      console.log('joinGameRoom '+rid)
-      context.dispatch('connectToRoom', {rid, cb: () => {
-        context.dispatch('updateRoomState', rid)
-        context.commit('goToView', 'room')
+      console.log('joinGameRoom '+props.rid)
+      context.dispatch('connectToRoom', {rid:props.rid, cb: () => {
+        context.dispatch('updateRoomState', props.rid)
+        context.commit('goToRoom', props.rid)
+        if (props.cb) props.cb();
       }});
     },
 
-    async attemptReconnect(context,oldConn) {
+    async attemptReconnect(context,onSuccess:any) {
+      let oldConn = getUnclosedConn();
       let res = await axios.get(context.state.apiUrl+"/api/canrejoin/"+oldConn.roomId+"/"+oldConn.socketId)
         .then(res=>res.data)
         .catch(err=>{
@@ -271,8 +260,8 @@ export default new Vuex.Store({
           context.dispatch("publishNotif", new Notification({
             msg: "Reconnected to room "+context.getters.roomId
           }))
-          context.commit('goToView', 'room')
-
+          context.commit('goToRoom', state.room.id)
+          onSuccess();
         })  
       }
 
@@ -360,7 +349,7 @@ function setupNewSocket(socket:any,context:any) {
     let oldConnection = getUnclosedConn();
     if (oldConnection) {
       console.log("Can try reconnecting to old connection.")
-      context.dispatch("attemptReconnect",oldConnection);
+      context.dispatch("attemptReconnect");
     }
   });
 
@@ -384,6 +373,7 @@ function setupNewSocket(socket:any,context:any) {
     }
   })
   socket.on('handleGameplay', (props:{method:string,payload:any})=> {
+    console.log("Received gameplay event: "+props.method)
     if (gameplayHandler && gameplayHandler[props.method]) gameplayHandler[props.method](props.payload);
     else console.warn("Gameplayhandler does not have method "+props.method)
   })
@@ -408,7 +398,7 @@ function setupNewSocket(socket:any,context:any) {
       }))
 
       setTimeout(()=>{
-        context.dispatch("attemptReconnect",getUnclosedConn());
+        context.dispatch("attemptReconnect");
       }, 5000)
     }
   })

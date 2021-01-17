@@ -180,7 +180,7 @@ export default {
         form: 'nickname',
         isValid: () => {return context.state.user.nickname},
         onOK: () => {context.$store.dispatch('emitUserData')},
-        onNO: () => {context.$store.commit('goToView','start')},
+        onNO: () => {context.$store.commit('goToStart')},
       })
 
     }
