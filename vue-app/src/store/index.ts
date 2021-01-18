@@ -208,7 +208,7 @@ export default new Vuex.Store({
       state.socket = setupNewSocket(state.socket,context);
       let socket = state.socket;
       
-      socket.emit('joinRoom',options.rid, state.user, (success:boolean,roomData:any,gameData:any) => {
+      socket.emit('joinRoom',options.rid, state.user, (success:boolean) => {
         if (success) {
           state.room.id = options.rid;
           setUnclosedConn(socket.id,state.room.id);

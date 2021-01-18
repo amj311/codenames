@@ -1,6 +1,6 @@
 <template>
   <div class="ui-view-wrapper">
-    <div v-if="roomIsReady">
+    <div v-if="roomIsReady" style="width:100%">
       <Board v-if="gameState.state && gameState.state.isInPlay" style="width: 100%" />
       <WaitingView v-else />
     </div>
