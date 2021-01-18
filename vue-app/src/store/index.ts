@@ -22,7 +22,32 @@ export default new Vuex.Store({
       codeMasters: [],
     },
     
-    game: null,
+    game: {
+      state: null,
+      config: {
+        numCardsSqrt:5,
+        numTeams:2,
+        numTeamCards:9,
+        numAssassins:1,
+        numBystanders:6,
+      },
+
+      cards: [],
+
+      teams: {
+        teamOne: { qty: 9, selectable: true, color: "#0bf", name: "Blue", deck: [], points: 0, img: require('@/assets/ninjas/blue.png'), members: [] },
+        teamTwo: { qty: 9, selectable: true, color: "#f22", name: "Red", deck: [], points: 0, img: require('@/assets/ninjas/red.png'), members: [] },
+        teamThree: { qty: 0, selectable: false, color: "#0f2", name: "Green", deck: [], points: 0, img: require('@/assets/ninjas/green.png'), members: [] },
+        bystander: { qty: 6, selectable: true, color: "#edcb40", name: "Bystander", deck: [], points: 0, img: require('@/assets/ninjas/yellow.png'), members: [] },
+        assassin: { qty: 1, color: "#2c3e50", name: "Assassin", deck: [], points: 0, img: require('@/assets/ninjas/black.png') },
+      },
+
+
+      teamOfTurn: null,
+      winner: null,
+      turnHint: "",
+      usedGuesses: 0,
+    },
 
     user: {
       id: Date.now()+Math.random()*(Math.random()+1),
@@ -94,8 +119,6 @@ export default new Vuex.Store({
     },
     resetGame(state){
       state.game.teamOfTurn = null;
-      state.game.canPlay = false;
-      state.game.roundStatus = '';
       state.game.winner = null;
       state.game.turnHint = "";
       state.game.usedGuesses = 0;

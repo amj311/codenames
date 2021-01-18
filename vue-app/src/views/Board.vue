@@ -1,32 +1,29 @@
 <template>
   <div id="boardWrapper">
     <div id="topBar" class="ui-raised">
-      <!-- <div style="flex-grow:1">
-        <button style="opacity:0">PLAY AGAIN</button>
-      </div> -->
       <div id="roomCode"><i class="material-icons">tap_and_play</i><span>{{$store.getters.roomId}}</span></div>
       <div style="flex-grow:1;text-align:right">
-        <button @click="initExitGame" v-if="gameState.roundStatus == 'gameOver'" class="ui-raised ui-pressable ui-shiny">PLAY AGAIN</button>
-        <button @click="promptEndGame" v-if="gameState.roundStatus != 'gameOver'" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': '#888'}">END GAME</button>
+        <button @click="initExitGame" v-if="gameState.state.isGameOver" class="ui-raised ui-pressable ui-shiny">PLAY AGAIN</button>
+        <button @click="promptEndGame" v-if="!gameState.state.isGameOver" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': '#888'}">END GAME</button>
       </div>
     </div>
 
-    <div id="playArea">
+    <div id="playArea" :class="{prevented: preventPlay}">
       <div id="roundSummary">
-        <div id="scoreboard" v-if="gameState.teamOfTurn && gameState.roundStatus != 'gameOver'">
+        <div id="scoreboard" v-if="gameState.teamOfTurn && !gameState.state.isGameOver">
           <div id="activeTeam" :style="{color: gameState.teamOfTurn.color}">Go {{gameState.teamOfTurn.name}}!</div>
-          <div id="guessCounter" v-if="gameState.roundStatus == 'guessing'">Attempts: {{gameState.usedGuesses}}</div>
-          <button @click="initAdvanceTurn"
-            v-if="gameState.roundStatus == 'guessing' && state.user.isCaptain && gameState.teamOfTurn.id == state.user.teamCode" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': gameState.teamOfTurn.color}">END TURN</button>
+          <div id="guessCounter" v-if="gameState.state.canRevealCard">Attempts: {{gameState.usedGuesses}}</div>
+          <button @click="initAdvanceTurn" v-if="canFlip"
+            class="ui-raised ui-pressable ui-shiny" :style="{'background-color': gameState.teamOfTurn.color}">END TURN</button>
         </div>
-        <div id="winnerMsg" v-else-if="gameState.roundStatus == 'gameOver'">
+        <div id="winnerMsg" v-else-if="gameState.state.isGameOver">
           <div class="ui-raised ui-shiny" :style="`text-align: center; margin: 0 auto; background-color: ${gameState.winner? gameState.winner.color : gameState.teams.bystander.color}; color: #fff; padding: .5em 1em; border-radius: 5px; font-size:1.2em`">{{gameState.winner? gameState.winner.name+" Wins!" : "DRAW!"}}</div>
         </div>
       </div>
 
-      <div v-if="gameState.cards.length > 0" class="cards-table" :style="{'pointer-events': (gameState.roundStatus == 'guessing' || gameState.roundStatus == 'gameOver') ? 'all' : 'none'}">
+      <div v-if="gameState.cards.length > 0" class="cards-table" :class="{'prevented': !(gameState.state.canRevealCard || gameState.state.isGameOver)}">
         <div v-for="card in gameState.cards" :key="card.word" :id="'card_'+card.id" class="card-cell" :style="{width: cardWidth+'%', 'padding-top': cardWidth*.60+'%'}">
-          <Card :freeRotate="gameState.roundStatus == 'gameOver'" :card="card" @tryFlip="initCardFlip" />
+          <Card :freeRotate="gameState.state.isGameOver" :card="card" @tryFlip="initCardFlip" />
         </div>
       </div>
 
@@ -36,8 +33,7 @@
         <div style="display: flex; justify-content: flex-start;">
         </div>
         <div>
-          <!-- FOR FULL REMOTE -->
-          <!-- <button @click="giveHint" v-if="gameState.roundStatus == 'givingHint'" class="ui-raised ui-pressable ui-shiny" :style="{'background-color': gameState.teamOfTurn.color}">GIVE HINT</button> -->
+          <!-- Just here for spacing -->
         </div>
         <div style="display: flex; justify-content: flex-end;">
         </div>
@@ -62,7 +58,7 @@ class GameplayHandler {
   constructor(vue) {
     this.vue = vue;
   }
-  advanceTurn(teamOfTurn) { this.vue.onAdvanceTurn(teamOfTurn) }
+  advanceTurn(game) { this.vue.onAdvanceTurn(game) }
   revealCard(res) { this.vue.onRevealCard(res) }
   endGame(game) { this.vue.onEndGame(game) }
   exitGame(game) { this.vue.onExitGame(game) }
@@ -77,6 +73,7 @@ export default {
   data() { return {
     state: this.$store.state,
     gameState: this.$store.state.game,
+    preventPlay: false,
     ninjasImgs: this.$store.state.ninjasImgs,
     gameplayHandler: new GameplayHandler(this),
 
@@ -92,7 +89,7 @@ export default {
     this.gameState.teams.bystander.img = this.ninjasImgs.yellow;
 
     this.printSecretKey();
-    this.onAdvanceTurn(this.gameState.teamOfTurn);
+   if (!this.gameState.state.isGameOver) this.onAdvanceTurn(this.gameState);
   },
 
   beforeDestroy() {
@@ -104,10 +101,6 @@ export default {
 
     canFlip() {
       if (this.state.user.isCaptain && this.gameState.teamOfTurn.name != this.gameState.teams[this.state.user.teamCode].name) {
-        this.$store.dispatch("publishNotif", new Notification({
-          type:"err",
-          msg:"It is not your team's turn yet!"
-        }))
         return false;
       }
       return (
@@ -117,9 +110,11 @@ export default {
   },
 
   methods: {
-    endGame() {
-      this.$store.dispatch('updateGameState',{roundStatus: 'gameOver'});
-      this.emitBoard();
+    initEndGame() {
+      this.$store.dispatch('invokeGameMethod',{method:"endGame",args:[]})
+    },
+    onEndGame(game){
+      this.$store.dispatch('updateGameState',game)
     },
     initExitGame(){
       this.$store.dispatch('invokeGameMethod',{method:"exitGame",args:[]})
@@ -130,15 +125,10 @@ export default {
     promptEndGame() {
       this.$store.dispatch('openModal', {
         msg: "Are you sure you want to end this game?",
-        onOK: () => this.endGame(),
+        onOK: () => this.initEndGame(),
         onNO: () => {return},
         onEX: () => {return},
       })
-    },
-
-    emitBoard() {
-      let props = ["teams","usedGuesses","turnGuesses","turnHint","winner","cards","teamOfTurn","canPlay","roundStatus"]
-      this.$store.dispatch('emitGamePieces', props);
     },
 
     printSecretKey() {
@@ -157,34 +147,35 @@ export default {
       console.groupEnd();
     },
 
-    pausePlay(){
-      this.$store.dispatch('updateGameState', {
-        roundStatus: "",
-        canPlay: false,
-      })
-    },
-
     initCardFlip(e) {
       if(this.canFlip) {
         this.$store.dispatch('invokeGameMethod',{method:"revealCard",args:[e.card.id]})
       }
+      else if (this.state.user.isCaptain) {
+        this.$store.dispatch("publishNotif", new Notification({
+          type:"err",
+          msg:"It is not your team's turn yet!"
+        }))
+      }
     },
 
     onRevealCard(res) {
+      this.preventPlay = true;
+      this.$store.dispatch('updateGameState', res.gameData);
+
       if (res.wasTeamCard) this.animateGoodFlip(res.card.id);
       else if (res.card.teamId == this.gameState.teams.assassin.id) this.animateAssassin(res.card.id);
       else this.animateBadFlip(res.card.id)
 
 
-      if (res.winner) {
-        
+      if (this.gameState.winner) {
         let context = this;
         setTimeout( () => {
-          this.$store.dispatch('updateGameState', {canPlay: true});
+          context.preventPlay = false;
           this.$store.dispatch('openModal', {
-            msg: res.winner.name + " wins!",
-            img: {path: this.gameState.teams[res.winner.id].img, w:'15em', h:'15em'},
-            onEX() { context.endGame(); },
+            msg: this.gameState.winner.name + " wins!",
+            img: {path: this.gameState.teams[this.gameState.winner.id].img, w:'15em', h:'15em'},
+            onEX() {},
             timeout: 3000,
           });
         }
@@ -192,17 +183,10 @@ export default {
       }
 
       else if (!res.wasTeamCard) {
-        setTimeout(()=>this.onAdvanceTurn(res.teamOfTurn), 1000);
+        setTimeout(()=>this.onAdvanceTurn(res.gameData), 1000);
       }
-      
-      this.$store.dispatch('updateGameState', {
-        winningCard: res.card,
-        winner: res.winner,
-        cards: res.cards,
-        state: res.state,
-        usedGuesses: res.usedGuesses
-     });
 
+      else this.preventPlay = false;
     },
 
     getCardTeam(card) {
@@ -218,24 +202,15 @@ export default {
       this.$store.dispatch('invokeGameMethod',{method:"advanceTurn",args:[]})
     },
 
-    onAdvanceTurn(teamOfTurn) {
-      this.$store.commit('resetRound')
-      this.$store.dispatch('updateGameState', {teamOfTurn});
-
-      // FOR PARTY
-      this.$store.dispatch('updateGameState', {
-        canPlay: true,
-        roundStatus: "guessing",
-      });
-
-      // FOR FULL REMOTE
-      // this.$store.dispatch('updateGameState', {roundStatus: 'givingHint'});
-      
+    onAdvanceTurn(game) {
+      this.$store.dispatch('updateGameState', game);
       this.$store.dispatch('openModal', {
-        msg: teamOfTurn.name + "'s turn!",
-        img: {path: this.gameState.teams[teamOfTurn.id].img, w:'5em', h:'5em'},
+        msg: game.teamOfTurn.name + "'s turn!",
+        img: {path: this.gameState.teams[game.teamOfTurn.id].img, w:'5em', h:'5em'},
         timeout: 3000,
       })
+
+      this.preventPlay = false;
 
     },
 
@@ -314,6 +289,10 @@ div#topBar {
 
 div#playArea {
   padding: 1em;
+}
+
+.prevented {
+  pointer-events: none;
 }
 
 .cards-table {

@@ -184,13 +184,6 @@ export default {
       })
 
     }
-    if (this.state.user.isHost) {
-      this.$store.dispatch('emitRoom');
-      this.$store.dispatch('emitGamePieces', ['roundStatus']);
-    }
-
-    //just for testing
-    this.$store.dispatch('updateRoomState', {players: this.testPlayers})
 
     this.numCardsSqrt = this.state.game.config.numCardsSqrt;
     this.numTeamCards = this.state.game.config.numTeamCards;
