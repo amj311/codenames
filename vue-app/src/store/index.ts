@@ -45,8 +45,6 @@ export default new Vuex.Store({
 
 
       teamOfTurn: null,
-      canPlay: false,
-      roundStatus: 'room',
       winner: null,
       turnHint: "",
       usedGuesses: 0,
@@ -116,8 +114,6 @@ export default new Vuex.Store({
     },
     resetGame(state){
       state.game.teamOfTurn = null;
-      state.game.canPlay = false;
-      state.game.roundStatus = '';
       state.game.winner = null;
       state.game.turnHint = "";
       state.game.usedGuesses = 0;

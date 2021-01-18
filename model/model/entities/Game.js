@@ -72,7 +72,7 @@ module.exports = class Game {
         }
         this.usedGuesses = 0;
 
-        return this.teamOfTurn;
+        return this;
     };
 
     revealCard(cardId) {
