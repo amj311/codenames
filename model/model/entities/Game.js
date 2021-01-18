@@ -9,6 +9,7 @@ module.exports = class Game {
         this.cards = null;
         this.teamOfTurn = null;
         this.winner = null;
+        this.winningCard = null;
         this.usedGuesses = 0;
     
         this.configure(config)
@@ -90,6 +91,7 @@ module.exports = class Game {
             cardTeam != this.teams.bystander)
         {
             this.winner = cardTeam;
+            this.winningCard = card;
             this.state = GameStates.gameOver;
         }
 
@@ -97,7 +99,7 @@ module.exports = class Game {
             this.advanceTurn();
         }
 
-        return new RevealCardResponse(card,wasTeamCard,this.cards,this.teamOfTurn,this.winner,this.state,this.usedGuesses)
+        return new RevealCardResponse(card,wasTeamCard,this)
     };
 
     setTeamCaptain(teamCode,captain) {
@@ -109,6 +111,7 @@ module.exports = class Game {
         this.cards = null;
         this.teamOfTurn = null;
         this.winner = null;
+        this.winningCard = null;
         this.usedGuesses = 0;
     }
     

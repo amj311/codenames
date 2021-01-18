@@ -24,7 +24,7 @@
         </div>
       </div>
 
-      <div v-if="gameState.cards.length > 0" class="cards-table" :style="{'pointer-events': (gameState.state.canRevealCard || gameState.state.isGameOver) ? 'all' : 'none'}">
+      <div v-if="gameState.cards.length > 0" class="cards-table" :class="{'prevented': !(gameState.state.canRevealCard || gameState.state.isGameOver)}">
         <div v-for="card in gameState.cards" :key="card.word" :id="'card_'+card.id" class="card-cell" :style="{width: cardWidth+'%', 'padding-top': cardWidth*.60+'%'}">
           <Card :freeRotate="gameState.state.isGameOver" :card="card" @tryFlip="initCardFlip" />
         </div>
@@ -92,7 +92,7 @@ export default {
     this.gameState.teams.bystander.img = this.ninjasImgs.yellow;
 
     this.printSecretKey();
-    this.onAdvanceTurn(this.gameState.teamOfTurn);
+   if (!this.gameState.state.isGameOver) this.onAdvanceTurn(this.gameState);
   },
 
   beforeDestroy() {
@@ -104,10 +104,6 @@ export default {
 
     canFlip() {
       if (this.state.user.isCaptain && this.gameState.teamOfTurn.name != this.gameState.teams[this.state.user.teamCode].name) {
-        this.$store.dispatch("publishNotif", new Notification({
-          type:"err",
-          msg:"It is not your team's turn yet!"
-        }))
         return false;
       }
       return (
@@ -158,25 +154,31 @@ export default {
       if(this.canFlip) {
         this.$store.dispatch('invokeGameMethod',{method:"revealCard",args:[e.card.id]})
       }
+      else if (this.state.user.isCaptain) {
+        this.$store.dispatch("publishNotif", new Notification({
+          type:"err",
+          msg:"It is not your team's turn yet!"
+        }))
+      }
     },
 
     onRevealCard(res) {
       this.preventPlay = true;
+      this.$store.dispatch('updateGameState', res.gameData);
 
       if (res.wasTeamCard) this.animateGoodFlip(res.card.id);
       else if (res.card.teamId == this.gameState.teams.assassin.id) this.animateAssassin(res.card.id);
       else this.animateBadFlip(res.card.id)
 
 
-      if (res.winner) {
-        
+      if (this.gameState.winner) {
         let context = this;
         setTimeout( () => {
           context.preventPlay = false;
           this.$store.dispatch('openModal', {
-            msg: res.winner.name + " wins!",
-            img: {path: this.gameState.teams[res.winner.id].img, w:'15em', h:'15em'},
-            onEX() { context.endGame(); },
+            msg: this.gameState.winner.name + " wins!",
+            img: {path: this.gameState.teams[this.gameState.winner.id].img, w:'15em', h:'15em'},
+            onEX() {},
             timeout: 3000,
           });
         }
@@ -184,20 +186,10 @@ export default {
       }
 
       else if (!res.wasTeamCard) {
-        setTimeout(()=>this.onAdvanceTurn(res.teamOfTurn), 1000);
+        setTimeout(()=>this.onAdvanceTurn(res.gameData), 1000);
       }
 
       else this.preventPlay = false;
-      
-      this.$store.dispatch('updateGameState', {
-        winningCard: res.card,
-        winner: res.winner,
-        cards: res.cards,
-        state: res.state,
-        usedGuesses: res.usedGuesses
-     });
-
-
     },
 
     getCardTeam(card) {
@@ -215,7 +207,6 @@ export default {
 
     onAdvanceTurn(game) {
       this.$store.dispatch('updateGameState', game);
-
       this.$store.dispatch('openModal', {
         msg: game.teamOfTurn.name + "'s turn!",
         img: {path: this.gameState.teams[game.teamOfTurn.id].img, w:'5em', h:'5em'},
@@ -302,7 +293,8 @@ div#topBar {
 div#playArea {
   padding: 1em;
 }
-#playArea.prevented {
+
+.prevented {
   pointer-events: none;
 }
 

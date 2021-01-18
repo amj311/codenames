@@ -33,7 +33,7 @@ export default {
 
   computed: {
     showTeamImg() {
-      return this.gameState.winningCard && this.gameState.winningCard.id == this.card.id;
+      return this.gameState.winningCard && this.gameState.winningCard.id === this.card.id;
     },
     teamImg() {
       return this.gameState.teams[this.card.teamId].img
