@@ -162,7 +162,8 @@ export default {
     this.captainIsSelected = this.state.user.isCaptain;
     this.setTeamImages();
 
-    fetch("https://api.qrapi.org/create?api_key=2bf6ed95d468a78cb2aef77a32036bcb&content="+encodeURIComponent(this.appUrl)).then(data=>{
+    let joinUrl = this.appUrl + "?join="+this.state.room.id;
+    fetch("https://api.qrapi.org/create?api_key=2bf6ed95d468a78cb2aef77a32036bcb&content="+encodeURIComponent(joinUrl)).then(data=>{
       return data.json()
     })
     .then(data=>{

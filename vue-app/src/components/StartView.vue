@@ -37,7 +37,7 @@
           
           <button role="submit" class="ui-pressable ui-shiny ui-raised">GO!</button>
         </form>
-        <form v-else-if="activeMenu == 'join'" @submit.prevent="joinGame" id="joinMenu">
+        <form v-else-if="activeMenu == 'join'" @submit.prevent="joinGame(roomToJoin)" id="joinMenu">
           <div class="form-row">
             <input type="text" ref="roomToJoin" v-model="roomToJoin" placeholder="Enter room code" style="text-transform: uppercase; font-size: 1.4em" maxlength="5">
             <button role="submit" :disabled="roomToJoin.length < 5" class="ui-pressable ui-shiny ui-raised">GO!</button>
@@ -67,6 +67,7 @@ export default {
 
   mounted() {
     this.checkForReconnection();
+    this.checkForJoinParam();
   },
 
   methods: {
@@ -89,7 +90,7 @@ export default {
           }))
       })
     },
-    joinGame() {
+    joinGame(rid) {
       let context = this;
       this.$store.dispatch('openModal', {
         msg: "Enter a nickname:",
@@ -97,11 +98,11 @@ export default {
         isValid: () => {return context.$store.state.user.nickname},
         onNO: () => {},
         onOK: () => {
-          axios.get(context.apiUrl+'/api/rooms/'+context.roomToJoin.toLowerCase()).then( res=> {
+          axios.get(context.apiUrl+'/api/rooms/'+rid.toLowerCase()).then( res=> {
             if (!res.data.ok) {
               context.$store.dispatch("publishNotif", new Notification({
                 type:"err",
-                msg: "Could not find room "+context.roomToJoin.toUpperCase()
+                msg: "Could not find room "+rid.toUpperCase()
               }))
             }
             else {
@@ -136,6 +137,14 @@ export default {
         }
       })
 
+    },
+
+    checkForJoinParam() {
+      let rid = new URLSearchParams(window.location.search).get("join")
+      if (rid != null) {
+        this.joinGame(rid);
+        window.history.pushState(null,document.tite,window.location.origin)
+      }
     }
   }
 }
