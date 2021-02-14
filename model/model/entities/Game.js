@@ -102,8 +102,24 @@ module.exports = class Game {
         return new RevealCardResponse(card,wasTeamCard,this)
     };
 
-    setTeamCaptain(teamCode,captain) {
-        if (this.teams[teamCode]) this.teams[teamCode].captain = captain;
+    setTeamCaptain(setAsCaptain,teamCode,user,cb) {
+        let team = this.teams[teamCode];
+        if (team) {
+            if (!setAsCaptain) {    
+                user.isCaptain = false;
+                user.teamCode = null;
+                if (team.captain && team.captain.id == user.id) team.captain = null;
+            }
+            else {
+                if (user.isCaptain) this.setTeamCaptain(false,user.teamCode,user);
+                user.isCaptain = true;
+                user.teamCode = teamCode;
+                team.captain = user;
+            }
+            this.teams[teamCode] = team;
+        }
+        console.log("user after set captain:",user)
+        if (cb) cb(user);
         return this.teams;
     }
     

@@ -24,8 +24,8 @@ class GameRoomManager {
         console.log("setting up socket "+socket.id)
         this.connections.set(socket.id,{socket,userData});
 
-        socket.on('invokeGameMethod', (method,args) => {
-            let payload = this.game[method](...args);
+        socket.on('invokeGameMethod', (method,args,cb) => {
+            let payload = this.game[method](...args,cb);
             this.emitToAllConnections("handleGameplay", {method, payload});
         })
 
@@ -34,17 +34,22 @@ class GameRoomManager {
                 this.game[key] = props[key];
             }
             this.emitToAllConnections('updateGamePieces', props);
+        })
 
+        socket.on('leaveRoom', () => {
+            let oldConn = this.connections.get(socket.id);
+            if (!oldConn) return;
+    
+            this.connections.delete(socket.id)
+            this.handleLostUserData(oldConn.userData);
         })
 
         socket.on('updateUserData', (newUserData) => {
-            Array.from(this.connections.values()).forEach(c => {
-                if (c.socket.id == socket.id) c.userData = newUserData;
-            })
+            this.connections.set(socket.id, {socket,userData:newUserData});
+            console.log("new user data",this.connections.get(socket.id).userData)
             this.emitToAllConnections('updatePlayers', this.getPlayers());
         })
 
-        
         socket.on('disconnect', () => {
             this.handleLostSocket(socket)
         })
@@ -67,18 +72,24 @@ class GameRoomManager {
         return players;
     }
 
-    handleLostSocket(newSocket) {
-        let oldConn = this.connections.get(newSocket.id);
-        console.log("Lost user: "+newSocket.id, oldConn.userData);
+    handleLostSocket(socket) {
+        let lostConn = this.connections.get(socket.id);
+        if (!lostConn) return;
 
-        this.connections.delete(newSocket.id);
-        this.lostConnections.set(newSocket.id,oldConn);
+        console.log("Lost user: "+socket.id, lostConn.userData);
 
-        if (oldConn.userData.isHost) this.emitToAllConnections('handleRoomUpdate', {method:"hostDisconnect",payload:oldConn.userData});
-        if (oldConn.userData.isPlayer) this.emitToAllConnections('handleRoomUpdate', {method:"playerDisconnect",payload:oldConn.userData});
+        this.connections.delete(socket.id);
+        this.lostConnections.set(socket.id,lostConn);
 
-        if (oldConn.userData.isCaptain) {
-            this.game.setTeamCaptain(oldConn.userData.teamCode,null);
+        this.handleLostUserData({...lostConn.userData});
+    }
+
+    handleLostUserData(userData) {
+        if (userData.isHost) this.emitToAllConnections('handleRoomUpdate', {method:"hostDisconnect",payload:userData});
+        if (userData.isPlayer) this.emitToAllConnections('handleRoomUpdate', {method:"playerDisconnect",payload:userData});
+
+        if (userData.isCaptain) {
+            this.game.setTeamCaptain(false,userData.teamCode,userData);
             this.emitToAllConnections('updateGamePieces', {teams:this.game.teams});
         }
         this.emitToAllConnections('updatePlayers', this.getPlayers());
@@ -89,28 +100,32 @@ class GameRoomManager {
         return this.lostConnections.has(socketId);
     }
 
-    handleReturningPlayer(newSocket,oldSockId,cb) {        
+    handleReturningPlayer(newSocket,oldSockId,cb) {       
+        console.log(this.lostConnections)
+
         let oldConnPair = this.lostConnections.get(oldSockId);
         if (!oldConnPair) return false;
 
         this.lostConnections.delete(oldSockId);
-        
-        if (oldConnPair.userData.isCaptain) {
-            if(!this.game.teams[oldConnPair.userData.teamCode].captain)
-                this.game.setTeamCaptain(oldConnPair.userData.teamCode,oldConnPair.userData);
+
+        let oldUserData = oldConnPair.userData;
+        console.log("returning user:", oldSockId, oldUserData);
+
+        if (oldUserData.isHost) this.emitToAllConnections('handleRoomUpdate', {method:"hostReconnect",payload:oldUserData});
+        if (oldUserData.isPlayer) this.emitToAllConnections('handleRoomUpdate', {method:"playerReconnect",payload:oldUserData});
+
+        if (oldUserData.isCaptain) {
+            if(!this.game.teams[oldUserData.teamCode].captain)
+                this.game.setTeamCaptain(true,oldUserData.teamCode,oldUserData);
             else {
-                oldConnPair.userData.isCaptain = false;
-                oldConnPair.userData.teamCode = null;
+                oldUserData.isCaptain = false;
+                oldUserData.teamCode = null;
             }
             this.emitToAllConnections('updateGamePieces', {teams:this.game.teams});
         }
 
-        this.setupPlayerSocket(newSocket,oldConnPair.userData,()=>{
-            cb(oldConnPair.userData,this.game,this.getRoomSummary())
-
-            if (oldConnPair.userData.isHost) this.emitToAllConnections('handleRoomUpdate', {method:"hostReconnect",payload:oldConnPair.userData});
-            if (oldConnPair.userData.isPlayer) this.emitToAllConnections('handleRoomUpdate', {method:"playerReconnect",payload:oldConnPair.userData});
-    
+        this.setupPlayerSocket(newSocket,oldUserData,()=>{
+            cb(oldUserData,this.game,this.getRoomSummary())
             this.emitToAllConnections('updatePlayers', this.getPlayers());    
         })
         return true;

@@ -21,6 +21,7 @@ console.log("Running dev:"+process.env.DEV)
 
 if (!dev) {
   (async () => {
+    console.log("Getting tunnel...")
     const tunnel = await lt({
       port,
       subdomain: "bom-codenames"

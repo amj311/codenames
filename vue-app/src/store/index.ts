@@ -92,6 +92,7 @@ export default new Vuex.Store({
         if (stateKeys.lastIndexOf(key) >= 0) state[options.object][key] = options.props[key];
         // else console.error("state."+options.object+" has no property " + key)
       }
+      setSnapshot(state);
     },
     updateTeamMembers(state, props:{teamCode:string,members:any}) {
       state.game.teams[props.teamCode].members = props.members;
@@ -174,7 +175,7 @@ export default new Vuex.Store({
         nickname: '',
       }
       context.commit('goToView', 'start')
-      removeUnclosedConn();
+      removeSnapshot();
       context.state.socket.disconnect()
       context.state.socket = null;
     },
@@ -191,13 +192,14 @@ export default new Vuex.Store({
       context.commit('updateStateObject', {object:'room',props})
     },
     updateUserState(context, props) {
+      console.log("user data:",props)
       context.commit('updateStateObject', {object:'user',props})
     },
 
 
 
     connectToRoom(context:any, options:{rid:string, cb: any}) {
-      removeUnclosedConn();
+      removeSnapshot();
 
       let state = context.state;
       state.socket = setupNewSocket(state.socket,context);
@@ -205,7 +207,7 @@ export default new Vuex.Store({
       
       socket.emit('joinRoom',options.rid, state.user, () => {
         state.room.id = options.rid;
-        setUnclosedConn(socket.id,state.room.id);
+        setSnapshot(state);
         options.cb();
       })
     },
@@ -248,7 +250,7 @@ export default new Vuex.Store({
       let tryNotifId = context.state.notifs[context.state.notifs.length-1].id;
 
       if(res && res.ok) {
-        removeUnclosedConn();
+        removeSnapshot();
 
         let state = context.state;
         if (!state.socket) state.socket = setupNewSocket(state.socket,context);
@@ -261,7 +263,7 @@ export default new Vuex.Store({
           state.room = roomData;
           state.game = gameData;
 
-          setUnclosedConn(socket.id,state.room.id);
+          setSnapshot(state);
 
           context.dispatch("removeNotif", tryNotifId);
           context.dispatch("publishNotif", new Notification({
@@ -280,16 +282,14 @@ export default new Vuex.Store({
           type:"err",
           msg: `Reconnect failed.`
         }))
-        removeUnclosedConn();
+        removeSnapshot();
         context.dispatch("resetToStart");
       }
     },
 
     emitUserData(context) {
+      console.log("emitting user data")
       context.state.socket.emit('updateUserData', context.state.user)
-    },
-    emitRoom(context) {
-      context.state.socket.emit('updateRoom', context.state.room)
     },
     emitGamePieces(context, keys) {
       let props:any = {};
@@ -302,8 +302,8 @@ export default new Vuex.Store({
     },
 
 
-    invokeGameMethod(context,props:{method:string,args:any[]}) {
-      context.state.socket.emit('invokeGameMethod', props.method,props.args)
+    invokeGameMethod(context,props:{method:string,args:any[],cb:any}) {
+      context.state.socket.emit('invokeGameMethod', props.method,props.args, props.cb)
     },
 
     openModal(context: any, props) {
@@ -353,7 +353,7 @@ function setupNewSocket(socket:any,context:any) {
 
   
   socket.on('connect', () => {
-    let oldConnection = getUnclosedConn();
+    let oldConnection = getSnapshot();
     if (oldConnection) {
       console.log("Can try reconnecting to old connection.")
       context.dispatch("attemptReconnect",oldConnection);
@@ -397,31 +397,35 @@ function setupNewSocket(socket:any,context:any) {
   })
 
   socket.on('disconnect', ()=> {
-    if(getUnclosedConn()) {
+    if (getSnapshot()){
       context.dispatch("publishNotif", new Notification({
         type:"err",
         msg: "You've been disconnected!. Trying to reconnect..."
       }))
-
+  
       setTimeout(()=>{
-        context.dispatch("attemptReconnect",getUnclosedConn());
+        context.dispatch("attemptReconnect",getSnapshot());
       }, 5000)
     }
   })
-
+  
   return socket;
 }
 
 
-function setUnclosedConn(socketId:string,roomId:string) {
-  let connectionData = {socketId,roomId}
-  localStorage.setItem("unclosedConnection",JSON.stringify(connectionData))
+
+
+
+
+function setSnapshot(state:{socket:any,room:any,user:any}) {
+  let snapData = {socketId:state.socket.id,roomId:state.room.id,user:state.user}
+  localStorage.setItem("snapshot",JSON.stringify(snapData))
 }
-function getUnclosedConn() {
-  let json = localStorage.getItem("unclosedConnection")
+function getSnapshot() {
+  let json = localStorage.getItem("snapshot")
   console.log("Unclosed connection:",json)
   return json? JSON.parse(json) : null;
 }
-function removeUnclosedConn() {
-  return localStorage.removeItem("unclosedConnection")
+function removeSnapshot() {
+  return localStorage.removeItem("snapshot")
 }

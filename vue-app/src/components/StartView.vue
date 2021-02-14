@@ -114,7 +114,7 @@ export default {
     },
 
     checkForReconnection() {
-      let json = localStorage.getItem("unclosedConnection")
+      let json = localStorage.getItem("snapshot")
       let oldConn = json? JSON.parse(json) : null;
       if(!oldConn) return;
 
@@ -131,7 +131,7 @@ export default {
             },
             neg: {
               txt: "No",
-              action: ()=>localStorage.removeItem("unclosedConnection")
+              action: ()=>localStorage.removeItem("snapshot")
             }
           }))
         }

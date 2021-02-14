@@ -69,11 +69,11 @@
         <h3>How To Join</h3>
         <div style="text-align:center">
           <p>
-            Visit <b><a :href="appUrl" target="blank" style="color:#0bf">{{appUrl}}</a></b>
+            Visit <b><a :href="joinUrl" target="blank" style="color:#0bf">{{joinUrl}}</a></b>
           </p>
-          <div v-if="appUrlQr">
+          <div v-if="joinUrlQr">
             <p>or scan this QR code:</p>
-            <img :src='appUrlQr' id="joinQR" />
+            <img :src='joinUrlQr' id="joinQR" />
           </div>
           <p>Select <b>Join Room</b>, and enter this code:</p>
           <h3><b class="code-cap">{{$store.getters.roomId}}</b></h3>
@@ -137,7 +137,7 @@ class GameHandler {
   }
   setTeamCaptain(teams) {
     this.vue.$store.dispatch("updateGameState",{teams})
-    this.vue.setTeamImages();
+    // this.vue.setTeamImages();
   }
 }
 
@@ -147,31 +147,28 @@ export default {
   data() {return({
     state: this.$store.state,
     gamePlayHandler: new GameHandler(this),
-    appUrl: new URL(window.location.href).origin,
     numCardsSqrt: null,
     numTeams: 2,
     numAssassins: null,
     numTeamCards: null,
     numBystanders: null,
-    appUrlQr: null,
+    joinUrl: new URL(window.location.href).origin,
+    joinUrlQr: null,
     ninjasImgs: this.$store.state.ninjasImgs,
-    captainIsSelected: false,
   })},
 
   async mounted() {
-    this.captainIsSelected = this.state.user.isCaptain;
     this.setTeamImages();
 
-    let joinUrl = this.appUrl + "?join="+this.state.room.id;
-    fetch("https://api.qrapi.org/create?api_key=2bf6ed95d468a78cb2aef77a32036bcb&content="+encodeURIComponent(joinUrl)).then(data=>{
+    this.joinUrl += "?join="+this.state.room.id.toUpperCase();
+    fetch("https://api.qrapi.org/create?api_key=2bf6ed95d468a78cb2aef77a32036bcb&content="+encodeURIComponent(this.joinUrl)).then(data=>{
       return data.json()
     })
     .then(data=>{
-      this.appUrlQr = data.content.qr_code;
+      this.joinUrlQr = data.content.qr_code;
     })
 
     this.$store.commit("setGameplayHandler",this.gamePlayHandler)
-    this.$store.dispatch('emitUserData');
 
     // FOR FULL REMOTE
     if (!this.state.user.isHost && !this.state.user.nickname) {
@@ -180,7 +177,7 @@ export default {
         msg: "Enter a nickname:",
         form: 'nickname',
         isValid: () => {return context.state.user.nickname},
-        onOK: () => {context.$store.dispatch('emitUserData')},
+        onOK: () => {},
         onNO: () => {context.$store.commit('goToView','start')},
       })
 
@@ -235,14 +232,14 @@ export default {
       if (this.canStartGame) this.$store.dispatch('invokeGameMethod',{method:"startGame",args:[this.config]})
     },
 
+// TODO: emit "leaveRoom"
     leaveRoom() {
-      this.$store.dispatch("resetToStart");
-      this.$store.dispatch('emitUserData');
+      this.$store.dispatch("leaveRoom");
     },
 
     closeRoom() {
       this.$store.dispatch("closeRoom");
-    }
+    },
   },
 
   computed: {
@@ -281,16 +278,21 @@ export default {
       console.log(teams);
       return teams;
     },
-
     
     userCaptainStatus: {
       get() { return this.$store.state.user.isCaptain },
       set(value) {
         this.$store.dispatch('updateUserState',{ isCaptain:value })
         if (value == false) {
-          this.$store.dispatch('invokeGameMethod',{ method:"setTeamCaptain",args:[this.state.user.teamCode,null] })
-          this.$store.dispatch('updateUserState',{ teamCode:null })
-          this.$store.dispatch('emitUserData')
+          let ctx = this;
+          this.$store.dispatch('invokeGameMethod',{
+            method:"setTeamCaptain",
+            args:[false,this.state.user.teamCode,this.state.user],
+            cb:(user)=> {
+              ctx.$store.dispatch('updateUserState', user) 
+              ctx.$store.dispatch('emitUserData')
+            }
+          })
         }
       }
     },
@@ -298,10 +300,16 @@ export default {
     userTeamSelection: {
       get() { return this.$store.state.user.teamCode },
       set(value) {
-        if (this.state.user.isCaptain && this.state.user.teamCode) this.$store.dispatch('invokeGameMethod',{ method:"setTeamCaptain",args:[this.state.user.teamCode,null] })
-        this.$store.dispatch('updateUserState',{ teamCode: value })
-        this.$store.dispatch('emitUserData')
-        this.$store.dispatch('invokeGameMethod',{ method:"setTeamCaptain",args:[this.state.user.teamCode,this.state.user] })
+        console.log("setting team captain")
+        let ctx = this;
+        this.$store.dispatch('invokeGameMethod', {
+          method:"setTeamCaptain",
+          args:[true,value,this.state.user],
+          cb:(user)=> {
+            ctx.$store.dispatch('updateUserState', user);
+            ctx.$store.dispatch('emitUserData');
+          }
+        })
       }
     },
 
