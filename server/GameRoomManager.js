@@ -97,13 +97,11 @@ class GameRoomManager {
 
     canReconnect(socketId) {
         console.log(socketId)
-        return this.lostConnections.has(socketId);
+        return this.lostConnections.has(socketId) || this.connections.has(socketId);
     }
 
-    handleReturningPlayer(newSocket,oldSockId,cb) {       
-        console.log(this.lostConnections)
-
-        let oldConnPair = this.lostConnections.get(oldSockId);
+    handleReturningPlayer(newSocket,oldSockId,cb) {
+        let oldConnPair = this.lostConnections.get(oldSockId) || this.connections.get(oldSockId);
         if (!oldConnPair) return false;
 
         this.lostConnections.delete(oldSockId);
@@ -124,10 +122,11 @@ class GameRoomManager {
             this.emitToAllConnections('updateGamePieces', {teams:this.game.teams});
         }
 
-        this.setupPlayerSocket(newSocket,oldUserData,()=>{
+        if (newSocket.id != oldSockId) this.setupPlayerSocket(newSocket,oldUserData,()=>{
             cb(oldUserData,this.game,this.getRoomSummary())
-            this.emitToAllConnections('updatePlayers', this.getPlayers());    
         })
+        this.emitToAllConnections('updatePlayers', this.getPlayers());
+
         return true;
     }
 

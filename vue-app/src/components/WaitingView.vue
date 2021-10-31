@@ -68,15 +68,11 @@
       <div id="joinInstructions" class="ui-block">
         <h3>How To Join</h3>
         <div style="text-align:center">
-          <p>
-            Visit <b><a :href="joinUrl" target="blank" style="color:#0bf">{{joinUrl}}</a></b>
-          </p>
+          
+          <p>Scan the code, or visit <b>{{hostUrl}}</b> and enter the room code.</p>
           <div v-if="joinUrlQr">
-            <p>or scan this QR code:</p>
             <img :src='joinUrlQr' id="joinQR" />
           </div>
-          <p>Select <b>Join Room</b>, and enter this code:</p>
-          <h3><b class="code-cap">{{$store.getters.roomId}}</b></h3>
 
         </div>
       </div>
@@ -152,7 +148,8 @@ export default {
     numAssassins: null,
     numTeamCards: null,
     numBystanders: null,
-    joinUrl: new URL(window.location.href).origin,
+    hostUrl: new URL(window.location.href).origin,
+    joinUrl: null,
     joinUrlQr: null,
     ninjasImgs: this.$store.state.ninjasImgs,
   })},
@@ -160,7 +157,7 @@ export default {
   async mounted() {
     this.setTeamImages();
 
-    this.joinUrl += "?join="+this.state.room.id.toUpperCase();
+    this.joinUrl = this.hostUrl + "?join="+this.state.room.id.toUpperCase();
     // fetch("https://api.qrserver.com/v1/create-qr-code/?data="+encodeURIComponent(this.joinUrl)).then(data=>{
     //   return data.json()
     // })
@@ -388,7 +385,7 @@ export default {
 }
 
 img#joinQR {
-  width: 8em;
+  width: 13em;
 }
 
 #teams {

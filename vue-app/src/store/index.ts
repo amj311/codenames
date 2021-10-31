@@ -184,6 +184,11 @@ export default new Vuex.Store({
       axios.delete(context.state.apiUrl+"/api/closeroom/"+context.state.room.id)
     },
 
+    leaveRoom(context) {
+      context.state.socket.emit("leaveRoom");
+      context.dispatch("resetToStart")
+    },
+
     updateGameState(context, props) {
       context.commit('updateStateObject', {object:'game',props})
       console.log("game:",context.state.game)
