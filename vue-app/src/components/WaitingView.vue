@@ -161,12 +161,13 @@ export default {
     this.setTeamImages();
 
     this.joinUrl += "?join="+this.state.room.id.toUpperCase();
-    fetch("https://api.qrapi.org/create?api_key=2bf6ed95d468a78cb2aef77a32036bcb&content="+encodeURIComponent(this.joinUrl)).then(data=>{
-      return data.json()
-    })
-    .then(data=>{
-      this.joinUrlQr = data.content.qr_code;
-    })
+    // fetch("https://api.qrserver.com/v1/create-qr-code/?data="+encodeURIComponent(this.joinUrl)).then(data=>{
+    //   return data.json()
+    // })
+    // .then(data=>{
+    //   this.joinUrlQr = data.content.qr_code;
+    // })
+    this.joinUrlQr = "https://api.qrserver.com/v1/create-qr-code/?data="+encodeURIComponent(this.joinUrl);
 
     this.$store.commit("setGameplayHandler",this.gamePlayHandler)
 
