@@ -61,7 +61,7 @@ function randomString(length) {
 }
 
 // ROOMS
-const RoomManager = require('../model/server/GameRoomManager.js')
+const RoomManager = require('../server/GameRoomManager.js')
 let rooms = new Map(); //Map<roomId,RoomManager>
 let roomDeleteDelay = 1000 * 60 * 5;
 
@@ -163,6 +163,8 @@ app.use(function(req, res, next) {
 
 // error handler
 app.use(function(err, req, res, next) {
+  console.log("Error!")
+  console.log(err)
   // set locals, only providing error in development
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};
@@ -171,7 +173,6 @@ app.use(function(err, req, res, next) {
   res.status(err.status || 500);
   res.send(err);
 });
-
 
 
 
