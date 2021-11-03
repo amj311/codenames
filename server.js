@@ -61,7 +61,7 @@ function randomString(length) {
 }
 
 // ROOMS
-const RoomManager = require('../server/GameRoomManager.js')
+const RoomManager = require('./lib/server/GameRoomManager')
 let rooms = new Map(); //Map<roomId,RoomManager>
 let roomDeleteDelay = 1000 * 60 * 5;
 
@@ -102,7 +102,7 @@ function deleteRoom(roomId) {
     return true;
   }
   else {
-    console.log("Could not find room: "+roomMatch.id)
+    console.log("Could not find room: "+roomId)
     return false;
   }
 }
@@ -179,7 +179,6 @@ app.use(function(err, req, res, next) {
 // SOCKETS
 socketio.on('connection', (socket) => {
   console.log("New socket connected: "+socket.id)
-  socket.emit('msg','Message from server: Hi!')
 
   socket.on('joinRoom', (roomId, userData, cb) => {
     console.log("requesting room id: "+roomId)
@@ -189,7 +188,7 @@ socketio.on('connection', (socket) => {
     if (roomMatch) {
       console.log('Found requested room '+roomMatch.id)			
       roomMatch.addPlayer(socket, userData)
-      cb();
+      cb(userData);
     }
     else {
       console.log("Could not find room: "+roomId)

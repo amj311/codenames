@@ -8,7 +8,21 @@
       </div>
     </div>
 
-    <div id="playArea" :class="{prevented: preventPlay}">
+    <div id="teamSelect" v-if="needNewCaptains">
+      <h3>Missing Team Captains!</h3>
+      <div v-if="!state.user.isHost && !userCaptainOfTeam">Select an option to become Team Captain:</div>
+      <div class="form-row" id="teamSelect">
+        <div v-for="teamCode in teamCaptainOptions" :key="teamCode">
+          <div v-if="!state.game.teams[teamCode].captain"
+            class="ui-shiny ui-raised team-option"
+            :class="{'ui-pressable': !state.user.isHost && !userCaptainOfTeam}"
+            @click="setUserAsCaptain(teamCode)"
+            :style="{'background-image': `url(${state.game.teams[teamCode].img})`}"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="playArea" :class="{prevented: preventPlay || needNewCaptains}">
       <div id="roundSummary">
         <div id="scoreboard" v-if="gameState.teamOfTurn && !gameState.state.isGameOver">
           <div id="activeTeam" :style="{color: gameState.teamOfTurn.color}">Go {{gameState.teamOfTurn.name}}!</div>
@@ -29,7 +43,7 @@
 
       <br>
 
-      <div id="bottomBar" v-if="state.user.isHost || state.user.isCaptain">
+      <div id="bottomBar" v-if="state.user.isHost || userCaptainOfTeam">
         <div style="display: flex; justify-content: flex-start;">
         </div>
         <div>
@@ -53,6 +67,8 @@
 <script>
 import Card from './Card.vue'
 import Notification from "../utils/Notification"
+import GameHelpers from "../../lib/services/GameHelpers"
+import Constants from "../../lib/constants"
 
 class GameplayHandler {
   constructor(vue) {
@@ -62,6 +78,9 @@ class GameplayHandler {
   revealCard(res) { this.vue.onRevealCard(res) }
   endGame(game) { this.vue.onEndGame(game) }
   exitGame(game) { this.vue.onExitGame(game) }
+  setTeamCaptain(game) {
+    this.vue.$store.dispatch("updateGameState",game)
+  }
 }
 
 export default {
@@ -97,15 +116,23 @@ export default {
   },
 
   computed: {
+    teamCaptainOptions() {
+      return Constants.PlayableTeamIds;
+    },
+    
+    needNewCaptains() {
+      return !this.gameState.teams.teamOne.captain || !this.gameState.teams.teamTwo.captain;
+    },
+
+    userCaptainOfTeam() {
+      return GameHelpers.getCaptainsTeam(this.state.user,this.state.game.teams);
+    },
+
     cardWidth() { return Math.floor(100/this.gameState.config.numCardsSqrt) },
 
     canFlip() {
-      if (this.state.user.isCaptain && this.gameState.teamOfTurn.name != this.gameState.teams[this.state.user.teamCode].name) {
-        return false;
-      }
       return (
-        this.state.user.isCaptain &&
-        this.gameState.state.canRevealCard
+        this.userCaptainOfTeam && this.gameState.state.canRevealCard && this.gameState.teamOfTurn?.id === this.userCaptainOfTeam.id
     )}
   },
 
@@ -149,9 +176,10 @@ export default {
 
     initCardFlip(e) {
       if(this.canFlip) {
+        console.log("sent flip!!!")
         this.$store.dispatch('invokeGameMethod',{method:"revealCard",args:[e.card.id]})
       }
-      else if (this.state.user.isCaptain) {
+      else if (this.gameState.state.canRevealCard && this.userCaptainOfTeam) {
         this.$store.dispatch("publishNotif", new Notification({
           type:"err",
           msg:"It is not your team's turn yet!"
@@ -160,6 +188,7 @@ export default {
     },
 
     onRevealCard(res) {
+        console.log("flipping Card!!!", res);
       this.preventPlay = true;
       this.$store.dispatch('updateGameState', res.gameData);
 
@@ -252,8 +281,16 @@ export default {
       let x = rect.x + rect.width/2;
       let y = rect.y + rect.height/2;
       return {x,y}
-    }
+    },
 
+    setUserAsCaptain(teamCode) {
+      if (this.state.user.isHost || this.userCaptainOfTeam) return;
+      console.log("setting team captain")
+      this.$store.dispatch('invokeGameMethod', {
+        method:"setTeamCaptain",
+        args:[true,teamCode,this.state.user]
+      })
+    }
   }
 }
 </script>
@@ -285,6 +322,24 @@ div#topBar {
   font-weight: bold;
   flex-wrap: wrap;
   justify-content: space-around;
+}
+
+
+
+#teamSelect.form-row {
+  justify-content: center;
+  flex-wrap: wrap;
+}
+#teamSelect.form-row .team-option {
+  display: block;
+  border-radius: 50%;
+  width: 4rem;
+  height: 4rem;
+  background-size: 110%;
+  background-position: center;
+  background-color: #bbb;
+  margin: .5rem;
+  transition: 200ms;
 }
 
 div#playArea {

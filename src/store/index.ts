@@ -51,11 +51,9 @@ export default new Vuex.Store({
     },
 
     user: {
-      id: Date.now()+Math.random()*(Math.random()+1),
+      id: null,
       isHost: false,
       isPlayer: false,
-      isCaptain: false,
-      teamCode: null,
       nickname: '',
     },
 
@@ -94,20 +92,20 @@ export default new Vuex.Store({
       }
       setSnapshot(state);
     },
-    updateTeamMembers(state, props:{teamCode:string,members:any}) {
-      state.game.teams[props.teamCode].members = props.members;
-    },
+    // updateTeamMembers(state, props:{teamCode:string,members:any}) {
+    //   state.game.teams[props.teamCode].members = props.members;
+    // },
     setTeamQty(state, props:{team: string, qty:number}) {
       state.game.teams[props.team].qty = Number(props.qty);
       console.log(props.team+" qty is now: "+state.game.teams[props.team].qty)
     },
-    setTeamCaptain(state, props:{team: string, captain:any}) {
-      console.log(props.captain)
-      Array.from(Object.values(state.game.teams)).forEach((t:any)=>{
-        if (props.captain && t.captain && t.captain.name == props.captain.name) t.captain = null;
-      })
-      state.game.teams[props.team].captain = props.captain;
-    },
+    // setTeamCaptain(state, props:{team: string, captain:any}) {
+    //   console.log(props.captain)
+    //   Array.from(Object.values(state.game.teams)).forEach((t:any)=>{
+    //     if (props.captain && t.captain && t.captain.name == props.captain.name) t.captain = null;
+    //   })
+    //   state.game.teams[props.team].captain = props.captain;
+    // },
     resetRound(state) {
       state.game.turnHint = "";
       state.game.turnGuesses = 1;
@@ -168,10 +166,9 @@ export default new Vuex.Store({
         codeMasters: [],
       }
       context.state.user = {
+        id: null,
         isHost: false,
         isPlayer: false,
-        isCaptain: false,
-        teamCode: null,
         nickname: '',
       }
       context.commit('goToView', 'start')
@@ -190,6 +187,7 @@ export default new Vuex.Store({
     },
 
     updateGameState(context, props) {
+      console.log("receiving game state props:",props)
       context.commit('updateStateObject', {object:'game',props})
       console.log("game:",context.state.game)
     },
@@ -203,24 +201,25 @@ export default new Vuex.Store({
 
 
 
-    connectToRoom(context:any, options:{rid:string, cb: any}) {
+    connectToRoom(context:any, options:{rid:string, cb: (newUserData:any)=>any}) {
       removeSnapshot();
 
       let state = context.state;
       state.socket = setupNewSocket(state.socket,context);
       let socket = state.socket;
       
-      socket.emit('joinRoom',options.rid, state.user, () => {
+      socket.emit('joinRoom',options.rid, state.user, (newUserData: any) => {
         state.room.id = options.rid;
         setSnapshot(state);
-        options.cb();
+        options.cb(newUserData);
       })
     },
     
     setupGameRoom(context, props: {id:string}) {
       context.state.user.isHost = true;
 
-      context.dispatch('connectToRoom', {rid: props.id, cb: () => {
+      context.dispatch('connectToRoom', {rid: props.id, cb: (userData: any) => {
+        context.dispatch('updateUserState', userData)
         context.dispatch('updateRoomState', props)
         context.commit('goToView', 'room')
       }});
@@ -230,7 +229,8 @@ export default new Vuex.Store({
       context.state.user.isPlayer = true;
       
       console.log('joinGameRoom '+rid)
-      context.dispatch('connectToRoom', {rid, cb: () => {
+      context.dispatch('connectToRoom', {rid, cb: (userData: any) => {
+        context.dispatch('updateUserState', userData)
         context.dispatch('updateRoomState', rid)
         context.commit('goToView', 'room')
       }});
@@ -353,7 +353,6 @@ export default new Vuex.Store({
 
 
 function setupNewSocket(socket:any,context:any) {
-  let state = context.state;
   if (!socket) socket = socketio(context.state.apiUrl);
 
   
@@ -379,10 +378,10 @@ function setupNewSocket(socket:any,context:any) {
   })
   socket.on('updatePlayers', (props:any)=> {
     context.dispatch('updateRoomState', {players: props})
-    for (let teamCode of Object.keys(state.game.teams)) {
-      let members = state.room.players.filter( (p:any) => (p.teamCode == teamCode) || (teamCode == 'bystander' && !p.teamCode));
-      context.commit('updateTeamMembers', { teamCode, members })
-    }
+    // for (let teamCode of Object.keys(state.game.teams)) {
+    //   let members = state.room.players.filter( (p:any) => (p.teamCode == teamCode) || (teamCode == 'bystander' && !p.teamCode));
+    //   context.commit('updateTeamMembers', { teamCode, members })
+    // }
   })
   socket.on('handleGameplay', (props:{method:string,payload:any})=> {
     if (gameplayHandler && gameplayHandler[props.method]) gameplayHandler[props.method](props.payload);

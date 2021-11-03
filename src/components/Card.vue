@@ -2,7 +2,7 @@
   <div class="wrapper" :class="{flipped: card.revealed, freeRotate: freeRotate}">
     <div class="card">
       <div class="card-face front ui-raised" :class="{'ui-pressable': !card.revealed && !freeRotate}" @click="emitClick($event)" >
-        <div v-if="state.user.isCaptain" class="color-banner" :style="{backgroundColor: card.color}"></div>
+        <div v-if="isUserCaptain" class="color-banner" :style="{backgroundColor: card.color}"></div>
         <div class="word-wrapper"><span class="word">{{ card.word }}</span></div>
       </div>
       <div class="card-face back ui-raised" :style="{backgroundColor: card.color}" style="background-image: linear-gradient(35deg, transparent 30%, rgba(255, 255, 255, 0.267) 35%, transparent 45%, transparent 52%, rgba(255, 255, 255, 0.267) 57%, transparent 73%)">
@@ -14,6 +14,8 @@
 </template>
 
 <script>
+import GameHelpers from "../../lib/services/GameHelpers"
+
 export default {
   name: 'Card',
   props: ["card", "freeRotate"],
@@ -32,6 +34,11 @@ export default {
   },
 
   computed: {
+    isUserCaptain() {
+      if (GameHelpers.getCaptainsTeam(this.state.user,this.state.game.teams)) return true;
+      else return false;
+    },
+
     showTeamImg() {
       return this.gameState.winningCard && this.gameState.winningCard.id === this.card.id;
     },
