@@ -11,15 +11,12 @@ var server = require('http').createServer(app);
 var socketio = require('socket.io').listen(server);
 
 var cors = require('cors')
+require("dotenv").config();
 
 let port = 3000;
 server.listen(port);
 
-let dev = require("./env.json").dev;
-process.env.DEV = dev;
-console.log("Running dev:"+process.env.DEV)
-
-if (!dev) {
+if (process.env.USE_TUNNEL) {
   (async () => {
     console.log("Getting tunnel...")
     const tunnel = await lt({
