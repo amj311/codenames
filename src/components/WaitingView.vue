@@ -28,19 +28,20 @@
     <div id="teamSelection" class="ui-block" v-if="state.user.isPlayer">
       <div style="text-align:center">
         <h3>Waiting for the game to start...</h3>
-        <div id="captainOptions" v-if="codeMasters.length<2 || state.user.isCaptain">
+
+        <div id="captainOptions" v-if="codeMasters.length<2 || userCaptainOfTeam">
           <div>
             <label for="captainStatus" style="display:flex; justify-content:center; align-items:center; cursor:pointer;">
               <span>Play as Codemaster?</span>
               <input type="range"
-                :style="`max-width:1.7em; transform:scale(1.5); filter: grayscale(${state.user.isCaptain? 0:1}); pointer-events:none;`"
-                :value="state.user.isCaptain? 1:0" min="0" max="1" step="1"
+                :style="`max-width:1.7em; transform:scale(1.5); filter: grayscale(${showCaptainTeamSelection? 0:1}); pointer-events:none;`"
+                :value="showCaptainTeamSelection? 1:0" min="0" max="1" step="1"
               >
             </label>
-            <input type="checkbox" id="captainStatus" v-model="userCaptainStatus" hidden>
+            <input type="checkbox" id="captainStatus" v-model="showCaptainTeamSelection" hidden>
           </div>
 
-          <div v-if="state.user.isCaptain">
+          <div v-if="showCaptainTeamSelection">
             <h3>Choose Your Team</h3>
             <div class="form-row" id="teamSelect">
               <div v-for="teamCode in teamCaptainOptions" :key="teamCode">
@@ -68,15 +69,11 @@
       <div id="joinInstructions" class="ui-block">
         <h3>How To Join</h3>
         <div style="text-align:center">
-          <p>
-            Visit <b><a :href="appUrl" target="blank" style="color:#0bf">{{appUrl}}</a></b>
-          </p>
-          <div v-if="appUrlQr">
-            <p>or scan this QR code:</p>
-            <img :src='appUrlQr' id="joinQR" />
+          
+          <p>Scan the code, or visit <b>{{hostUrl}}</b> and enter the room code.</p>
+          <div v-if="joinUrlQr">
+            <img :src='joinUrlQr' id="joinQR" />
           </div>
-          <p>Select <b>Join Room</b>, and enter this code:</p>
-          <h3><b class="code-cap">{{$store.getters.roomId}}</b></h3>
 
         </div>
       </div>
@@ -128,6 +125,9 @@
 </template>
 
 <script>
+import GameHelpers from "../../lib/services/GameHelpers"
+import Constants from "../../lib/constants"
+
 class GameHandler {
   constructor(vue) {
     this.vue = vue;
@@ -135,9 +135,9 @@ class GameHandler {
   startGame(game) {
     this.vue.$store.dispatch("updateGameState",game)
   }
-  setTeamCaptain(teams) {
-    this.vue.$store.dispatch("updateGameState",{teams})
-    this.vue.setTeamImages();
+  setTeamCaptain(game) {
+    this.vue.$store.dispatch("updateGameState",game)
+    // this.vue.setTeamImages();
   }
 }
 
@@ -147,31 +147,25 @@ export default {
   data() {return({
     state: this.$store.state,
     gamePlayHandler: new GameHandler(this),
-    appUrl: new URL(window.location.href).origin,
+    showCaptainTeamSelection: false,
     numCardsSqrt: null,
     numTeams: 2,
     numAssassins: null,
     numTeamCards: null,
     numBystanders: null,
-    appUrlQr: null,
+    hostUrl: new URL(window.location.href).origin,
+    joinUrl: null,
+    joinUrlQr: null,
     ninjasImgs: this.$store.state.ninjasImgs,
-    captainIsSelected: false,
   })},
 
   async mounted() {
-    this.captainIsSelected = this.state.user.isCaptain;
     this.setTeamImages();
 
-    let joinUrl = this.appUrl + "?join="+this.state.room.id;
-    fetch("https://api.qrapi.org/create?api_key=2bf6ed95d468a78cb2aef77a32036bcb&content="+encodeURIComponent(joinUrl)).then(data=>{
-      return data.json()
-    })
-    .then(data=>{
-      this.appUrlQr = data.content.qr_code;
-    })
+    this.joinUrl = this.hostUrl + "?join="+this.state.room.id.toUpperCase();
+    this.joinUrlQr = "https://api.qrserver.com/v1/create-qr-code/?data="+encodeURIComponent(this.joinUrl);
 
     this.$store.commit("setGameplayHandler",this.gamePlayHandler)
-    this.$store.dispatch('emitUserData');
 
     // FOR FULL REMOTE
     if (!this.state.user.isHost && !this.state.user.nickname) {
@@ -180,11 +174,12 @@ export default {
         msg: "Enter a nickname:",
         form: 'nickname',
         isValid: () => {return context.state.user.nickname},
-        onOK: () => {context.$store.dispatch('emitUserData')},
+        onOK: () => {},
         onNO: () => {context.$store.commit('goToView','start')},
       })
-
     }
+
+    this.showCaptainTeamSelection = this.userCaptainOfTeam !== null;
 
     this.numCardsSqrt = this.state.game.config.numCardsSqrt;
     this.numTeamCards = this.state.game.config.numTeamCards;
@@ -193,9 +188,16 @@ export default {
   },
 
   watch: {
-    userTeamSelection() {
-      
+    showCaptainTeamSelection(yes) {
+      console.log(yes);
+      if (!yes && this.userCaptainOfTeam) {
+          this.$store.dispatch('invokeGameMethod',{
+            method:"setTeamCaptain",
+            args:[false,this.userCaptainOfTeam.id,this.state.user],
+          })
+      }
     },
+
     numCardsSqrt() {
       this.calcNumBystanders()
       this.$store.dispatch('updateGameState', {config: this.config})
@@ -236,21 +238,21 @@ export default {
     },
 
     leaveRoom() {
-      this.$store.dispatch("resetToStart");
-      this.$store.dispatch('emitUserData');
+      this.$store.dispatch("leaveRoom");
     },
 
     closeRoom() {
       this.$store.dispatch("closeRoom");
-    }
+    },
   },
 
   computed: {
+    userCaptainOfTeam() {
+      return GameHelpers.getCaptainsTeam(this.state.user,this.state.game.teams);
+    },
+
     teamCaptainOptions() {
-      return Array.from(Object.values(this.state.game.teams)).reduce((teamIds,team)=>{
-        if(team.isCompetitor) teamIds.push(team.id)
-        return teamIds;
-      }, []);
+      return Constants.PlayableTeamIds;
     },
 
     maxCompTeamQty() {
@@ -273,43 +275,30 @@ export default {
     cardWidth() { return Math.floor(100/this.numCardsSqrt)+'%' },
 
     codeMasters() {
-      console.log(this.state.game.teams)
-      let teams = Array.from(Object.values(this.$store.state.game.teams)).reduce((teamsData,team)=>{
+      console.log("teams:",this.state.game.teams)
+      let masters = Array.from(Object.values(this.$store.state.game.teams)).reduce((teamsData,team)=>{
         if (team.isCompetitor && team.captain) teamsData.push({teamId:team.id,captain:team.captain});
         return teamsData;
       }, [])
-      console.log(teams);
-      return teams;
-    },
-
-    
-    userCaptainStatus: {
-      get() { return this.$store.state.user.isCaptain },
-      set(value) {
-        this.$store.dispatch('updateUserState',{ isCaptain:value })
-        if (value == false) {
-          this.$store.dispatch('invokeGameMethod',{ method:"setTeamCaptain",args:[this.state.user.teamCode,null] })
-          this.$store.dispatch('updateUserState',{ teamCode:null })
-          this.$store.dispatch('emitUserData')
-        }
-      }
+      console.log(masters);
+      return masters;
     },
 
     userTeamSelection: {
-      get() { return this.$store.state.user.teamCode },
+      get() { return this.userCaptainOfTeam?.id },
       set(value) {
-        if (this.state.user.isCaptain && this.state.user.teamCode) this.$store.dispatch('invokeGameMethod',{ method:"setTeamCaptain",args:[this.state.user.teamCode,null] })
-        this.$store.dispatch('updateUserState',{ teamCode: value })
-        this.$store.dispatch('emitUserData')
-        this.$store.dispatch('invokeGameMethod',{ method:"setTeamCaptain",args:[this.state.user.teamCode,this.state.user] })
+        console.log("setting team captain")
+        this.$store.dispatch('invokeGameMethod', {
+          method:"setTeamCaptain",
+          args:[true,value,this.state.user]
+        })
       }
     },
 
     canStartGame() {
-      console.log("codemasters: ",this.codeMasters)
       return (
         this.codeMasters.length >= 2 &&
-        (this.state.user.isHost || this.state.user.isCaptain)
+        (this.state.user.isHost || this.userCaptainOfTeam)
       )
     },
 
@@ -379,7 +368,7 @@ export default {
 }
 
 img#joinQR {
-  width: 8em;
+  width: 13em;
 }
 
 #teams {

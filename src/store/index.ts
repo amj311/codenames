@@ -51,11 +51,9 @@ export default new Vuex.Store({
     },
 
     user: {
-      id: Date.now()+Math.random()*(Math.random()+1),
+      id: null,
       isHost: false,
       isPlayer: false,
-      isCaptain: false,
-      teamCode: null,
       nickname: '',
     },
 
@@ -92,21 +90,22 @@ export default new Vuex.Store({
         if (stateKeys.lastIndexOf(key) >= 0) state[options.object][key] = options.props[key];
         // else console.error("state."+options.object+" has no property " + key)
       }
+      setSnapshot(state);
     },
-    updateTeamMembers(state, props:{teamCode:string,members:any}) {
-      state.game.teams[props.teamCode].members = props.members;
-    },
+    // updateTeamMembers(state, props:{teamCode:string,members:any}) {
+    //   state.game.teams[props.teamCode].members = props.members;
+    // },
     setTeamQty(state, props:{team: string, qty:number}) {
       state.game.teams[props.team].qty = Number(props.qty);
       console.log(props.team+" qty is now: "+state.game.teams[props.team].qty)
     },
-    setTeamCaptain(state, props:{team: string, captain:any}) {
-      console.log(props.captain)
-      Array.from(Object.values(state.game.teams)).forEach((t:any)=>{
-        if (props.captain && t.captain && t.captain.name == props.captain.name) t.captain = null;
-      })
-      state.game.teams[props.team].captain = props.captain;
-    },
+    // setTeamCaptain(state, props:{team: string, captain:any}) {
+    //   console.log(props.captain)
+    //   Array.from(Object.values(state.game.teams)).forEach((t:any)=>{
+    //     if (props.captain && t.captain && t.captain.name == props.captain.name) t.captain = null;
+    //   })
+    //   state.game.teams[props.team].captain = props.captain;
+    // },
     resetRound(state) {
       state.game.turnHint = "";
       state.game.turnGuesses = 1;
@@ -167,14 +166,13 @@ export default new Vuex.Store({
         codeMasters: [],
       }
       context.state.user = {
+        id: null,
         isHost: false,
         isPlayer: false,
-        isCaptain: false,
-        teamCode: null,
         nickname: '',
       }
       context.commit('goToView', 'start')
-      removeUnclosedConn();
+      removeSnapshot();
       context.state.socket.disconnect()
       context.state.socket = null;
     },
@@ -183,7 +181,13 @@ export default new Vuex.Store({
       axios.delete(context.state.apiUrl+"/api/closeroom/"+context.state.room.id)
     },
 
+    leaveRoom(context) {
+      context.state.socket.emit("leaveRoom");
+      context.dispatch("resetToStart")
+    },
+
     updateGameState(context, props) {
+      console.log("receiving game state props:",props)
       context.commit('updateStateObject', {object:'game',props})
       console.log("game:",context.state.game)
     },
@@ -191,29 +195,31 @@ export default new Vuex.Store({
       context.commit('updateStateObject', {object:'room',props})
     },
     updateUserState(context, props) {
+      console.log("user data:",props)
       context.commit('updateStateObject', {object:'user',props})
     },
 
 
 
-    connectToRoom(context:any, options:{rid:string, cb: any}) {
-      removeUnclosedConn();
+    connectToRoom(context:any, options:{rid:string, cb: (newUserData:any)=>any}) {
+      removeSnapshot();
 
       let state = context.state;
       state.socket = setupNewSocket(state.socket,context);
       let socket = state.socket;
       
-      socket.emit('joinRoom',options.rid, state.user, () => {
+      socket.emit('joinRoom',options.rid, state.user, (newUserData: any) => {
         state.room.id = options.rid;
-        setUnclosedConn(socket.id,state.room.id);
-        options.cb();
+        setSnapshot(state);
+        options.cb(newUserData);
       })
     },
     
     setupGameRoom(context, props: {id:string}) {
       context.state.user.isHost = true;
 
-      context.dispatch('connectToRoom', {rid: props.id, cb: () => {
+      context.dispatch('connectToRoom', {rid: props.id, cb: (userData: any) => {
+        context.dispatch('updateUserState', userData)
         context.dispatch('updateRoomState', props)
         context.commit('goToView', 'room')
       }});
@@ -223,7 +229,8 @@ export default new Vuex.Store({
       context.state.user.isPlayer = true;
       
       console.log('joinGameRoom '+rid)
-      context.dispatch('connectToRoom', {rid, cb: () => {
+      context.dispatch('connectToRoom', {rid, cb: (userData: any) => {
+        context.dispatch('updateUserState', userData)
         context.dispatch('updateRoomState', rid)
         context.commit('goToView', 'room')
       }});
@@ -248,7 +255,7 @@ export default new Vuex.Store({
       let tryNotifId = context.state.notifs[context.state.notifs.length-1].id;
 
       if(res && res.ok) {
-        removeUnclosedConn();
+        removeSnapshot();
 
         let state = context.state;
         if (!state.socket) state.socket = setupNewSocket(state.socket,context);
@@ -261,7 +268,7 @@ export default new Vuex.Store({
           state.room = roomData;
           state.game = gameData;
 
-          setUnclosedConn(socket.id,state.room.id);
+          setSnapshot(state);
 
           context.dispatch("removeNotif", tryNotifId);
           context.dispatch("publishNotif", new Notification({
@@ -280,16 +287,14 @@ export default new Vuex.Store({
           type:"err",
           msg: `Reconnect failed.`
         }))
-        removeUnclosedConn();
+        removeSnapshot();
         context.dispatch("resetToStart");
       }
     },
 
     emitUserData(context) {
+      console.log("emitting user data")
       context.state.socket.emit('updateUserData', context.state.user)
-    },
-    emitRoom(context) {
-      context.state.socket.emit('updateRoom', context.state.room)
     },
     emitGamePieces(context, keys) {
       let props:any = {};
@@ -302,8 +307,8 @@ export default new Vuex.Store({
     },
 
 
-    invokeGameMethod(context,props:{method:string,args:any[]}) {
-      context.state.socket.emit('invokeGameMethod', props.method,props.args)
+    invokeGameMethod(context,props:{method:string,args:any[],cb:any}) {
+      context.state.socket.emit('invokeGameMethod', props.method,props.args, props.cb)
     },
 
     openModal(context: any, props) {
@@ -348,12 +353,11 @@ export default new Vuex.Store({
 
 
 function setupNewSocket(socket:any,context:any) {
-  let state = context.state;
   if (!socket) socket = socketio(context.state.apiUrl);
 
   
   socket.on('connect', () => {
-    let oldConnection = getUnclosedConn();
+    let oldConnection = getSnapshot();
     if (oldConnection) {
       console.log("Can try reconnecting to old connection.")
       context.dispatch("attemptReconnect",oldConnection);
@@ -374,10 +378,10 @@ function setupNewSocket(socket:any,context:any) {
   })
   socket.on('updatePlayers', (props:any)=> {
     context.dispatch('updateRoomState', {players: props})
-    for (let teamCode of Object.keys(state.game.teams)) {
-      let members = state.room.players.filter( (p:any) => (p.teamCode == teamCode) || (teamCode == 'bystander' && !p.teamCode));
-      context.commit('updateTeamMembers', { teamCode, members })
-    }
+    // for (let teamCode of Object.keys(state.game.teams)) {
+    //   let members = state.room.players.filter( (p:any) => (p.teamCode == teamCode) || (teamCode == 'bystander' && !p.teamCode));
+    //   context.commit('updateTeamMembers', { teamCode, members })
+    // }
   })
   socket.on('handleGameplay', (props:{method:string,payload:any})=> {
     if (gameplayHandler && gameplayHandler[props.method]) gameplayHandler[props.method](props.payload);
@@ -397,31 +401,35 @@ function setupNewSocket(socket:any,context:any) {
   })
 
   socket.on('disconnect', ()=> {
-    if(getUnclosedConn()) {
+    if (getSnapshot()){
       context.dispatch("publishNotif", new Notification({
         type:"err",
         msg: "You've been disconnected!. Trying to reconnect..."
       }))
-
+  
       setTimeout(()=>{
-        context.dispatch("attemptReconnect",getUnclosedConn());
+        context.dispatch("attemptReconnect",getSnapshot());
       }, 5000)
     }
   })
-
+  
   return socket;
 }
 
 
-function setUnclosedConn(socketId:string,roomId:string) {
-  let connectionData = {socketId,roomId}
-  localStorage.setItem("unclosedConnection",JSON.stringify(connectionData))
+
+
+
+
+function setSnapshot(state:{socket:any,room:any,user:any}) {
+  let snapData = {socketId:state.socket.id,roomId:state.room.id,user:state.user}
+  localStorage.setItem("snapshot",JSON.stringify(snapData))
 }
-function getUnclosedConn() {
-  let json = localStorage.getItem("unclosedConnection")
+function getSnapshot() {
+  let json = localStorage.getItem("snapshot")
   console.log("Unclosed connection:",json)
   return json? JSON.parse(json) : null;
 }
-function removeUnclosedConn() {
-  return localStorage.removeItem("unclosedConnection")
+function removeSnapshot() {
+  return localStorage.removeItem("snapshot")
 }
