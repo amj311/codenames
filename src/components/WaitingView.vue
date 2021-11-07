@@ -111,7 +111,7 @@
       <button v-else class="inline ui-pressable ui-shiny" style="background: transparent; color: inherit;" @click="leaveRoom"><i class="material-icons">cancel</i>Leave Room</button>
       
       <button id="play" v-if="canStartGame" class="inline ui-pressable ui-shiny ui-raised" @click="startGame">PLAY!</button>
-      <div v-else style="text-align:right; font-size:.8em; font-weight:bold">Waiting for codemasters...</div>
+      <div v-else style="text-align:right; font-size:.8em; font-weight:bold">Waiting to begin...</div>
     </div>
 
     <!-- Just for preloading the ninja images -->
@@ -198,9 +198,10 @@ export default {
       }
     },
 
-    numCardsSqrt() {
+    numCardsSqrt(val) {
+      this.numCardsSqrt = val;
       this.calcNumBystanders()
-      this.$store.dispatch('updateGameState', {config: this.config})
+      // this.$store.dispatch('updateGameState', {config: this.config})
     },
     numTeamCards() {
       this.$store.commit('setTeamQty', {team: 'teamOne', qty: this.numTeamCards})
@@ -227,7 +228,7 @@ export default {
     },
 
     calcNumBystanders() {
-      let numBystanders = this.numCardsSqrt**2 - this.numAssassins - this.numTeamCards*this.numTeams;
+      let numBystanders = this.numCardsSqrt.toString()**2 - this.numAssassins - this.numTeamCards*this.numTeams;
       this.$store.commit('setTeamQty', {team: 'bystander', qty: numBystanders})
       this.numBystanders = numBystanders;
       return numBystanders;
@@ -298,7 +299,8 @@ export default {
     canStartGame() {
       return (
         this.codeMasters.length >= 2 &&
-        (this.state.user.isHost || this.userCaptainOfTeam)
+        // (this.state.user.isHost || this.userCaptainOfTeam)
+        this.state.user.isHost
       )
     },
 
