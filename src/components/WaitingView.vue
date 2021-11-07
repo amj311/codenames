@@ -198,10 +198,17 @@ export default {
       }
     },
 
+    config() {
+      console.log("updated config", this.config);
+      this.$store.dispatch('invokeGameMethod',{
+        method:"configure",
+        args:[this.config],
+      })
+    },
+
     numCardsSqrt(val) {
       this.numCardsSqrt = val;
       this.calcNumBystanders()
-      // this.$store.dispatch('updateGameState', {config: this.config})
     },
     numTeamCards() {
       this.$store.commit('setTeamQty', {team: 'teamOne', qty: this.numTeamCards})
@@ -219,7 +226,7 @@ export default {
 
 
   methods: {
-    setTeamImages(){      
+    setTeamImages(){
       this.state.game.teams.assassin.img = this.ninjasImgs.black;
       this.state.game.teams.teamOne.img = this.ninjasImgs.blue;
       this.state.game.teams.teamTwo.img = this.ninjasImgs.red;
