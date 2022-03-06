@@ -198,13 +198,13 @@ export default {
       }
     },
 
-    config() {
-      console.log("updated config", this.config);
-      this.$store.dispatch('invokeGameMethod',{
-        method:"configure",
-        args:[this.config],
-      })
-    },
+    // config() {
+    //   console.log("updated config", this.config);
+    //   this.$store.dispatch('invokeGameMethod',{
+    //     method:"configure",
+    //     args:[this.config],
+    //   })
+    // },
 
     numCardsSqrt(val) {
       this.numCardsSqrt = val;
@@ -242,6 +242,7 @@ export default {
     },
 
     startGame() {
+      console.log(this.config)
       if (this.canStartGame) this.$store.dispatch('invokeGameMethod',{method:"startGame",args:[this.config]})
     },
 
