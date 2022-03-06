@@ -16,7 +16,7 @@ require("dotenv").config();
 let port = process.env.PORT || 3000;
 server.listen(port);
 
-if (process.env.USE_TUNNEL) {
+if (process.env.USE_TUNNEL != 0) {
   (async () => {
     console.log("Getting tunnel...")
     const tunnel = await lt({
